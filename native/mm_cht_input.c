@@ -37,7 +37,7 @@ static uint32_t is_ntilde_down(void) {
     if (foreground == NULL) return 0;
     GetWindowThreadProcessId(foreground, &foreground_process);
     if (foreground_process != GetCurrentProcessId()) return 0;
-    return (GetAsyncKeyState(VK_OEM_1) & 0x8000) ? 1u : 0u;
+    return (GetAsyncKeyState(VK_OEM_3) & 0x8000) ? 1u : 0u;
 }
 
 /* Native library exports use the Recompiled guest-context ABI. */
