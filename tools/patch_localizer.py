@@ -46,9 +46,9 @@ typedef struct {
 
 #include "generated/pinyin_data.inc"
 
-RECOMP_IMPORT("mm_cht_input", u32 mmcht_f5_down(void));
-RECOMP_IMPORT("mm_cht_input", u32 mmcht_load_language(void));
-RECOMP_IMPORT("mm_cht_input", void mmcht_save_language(u32 enabled));
+RECOMP_IMPORT(".", u32 mmcht_f5_down(void));
+RECOMP_IMPORT(".", u32 mmcht_load_language(void));
+RECOMP_IMPORT(".", void mmcht_save_language(u32 enabled));
 
 /* State used by hooks declared below. */
 static bool sChineseEnabled;
@@ -271,7 +271,7 @@ void mmcht_poll_f5(PlayState* play) {
                             'authors = [ "alvarorrola-ui", "SilntRavn (Chinese localization)" ]',
                             "authors")
     manifest = replace_once(manifest, 'native_libraries = []',
-                            'native_libraries = [ { name = "mm_cht_input", funcs = [ "mmcht_f5_down", "mmcht_load_language", "mmcht_save_language" ] } ]',
+                            'native_libraries = [ { name = "mm_cht_input", exports = [ "mmcht_f5_down", "mmcht_load_language", "mmcht_save_language" ] } ]',
                             "native library declaration")
     manifest = replace_once(manifest, 'mod_filename = "mm_simplified_chinese"',
                             'mod_filename = "mm_chinese_english_toggle"', "mod filename")
