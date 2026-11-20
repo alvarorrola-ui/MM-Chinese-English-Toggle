@@ -169,9 +169,7 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
     start = source.index("static void cn_draw_page(PlayState* play, Gfx** gfxP) {")
     end = source.index("static bool cn_message_draws_text_this_frame", start)
     chunk = source[start:end]
-    chunk = replace_once(chunk, "                y += msgCtx->lineHeight;\n",
-                         "                y += msgCtx->lineHeight + (cn_pinyin_enabled() ? 6 : 0);\n",
-                         "pinyin line spacing")
+    # Pinyin has its own panel; leave Chinese line spacing unchanged.
     glyph = r'''        const u8* glyph = cn_find_glyph(command);
         if (glyph != NULL) {
             bool shadow = (msgCtx->textBoxType != TEXTBOX_TYPE_CLEAR) &&
@@ -204,17 +202,7 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
     }
     return msgCtx->textboxYTarget + offset;
 }'''
-    page_y_new = r'''    } else {
-        offset = 26 - ((page->lineCount - 1) * 6);
-        if (offset < 8) {
-            offset = 8;
-        }
-    }
-    if (cn_pinyin_enabled() && (page->lineCount > 1)) {
-        offset -= (page->lineCount - 1) * 3;
-    }
-    return msgCtx->textboxYTarget + offset;
-}'''
+    page_y_new = page_y_old
     source = replace_once(source, page_y_old, page_y_new, "pinyin vertical alignment")
 
     source = replace_once(
