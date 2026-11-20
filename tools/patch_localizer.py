@@ -193,12 +193,28 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
                           !play->pauseCtx.bombersNotebookOpen;
             cn_draw_glyph(gfxP, glyph, x, y, glyphSize, color, commandAlpha, shadow);
         }
-        if ((command >= 0x3400) && (command <= 0x9FFF)) {
-            cn_draw_pinyin(gfxP, command, x, y, glyphSize, color, commandAlpha);
+        if (cn_pinyin_enabled() && (command >= 0x3400) && (command <= 0x9FFF)) {
+            const char* syllable = cn_find_pinyin(command);
+            if (syllable != NULL) {
+                s32 length = 0;
+                while (syllable[length] != '\\0') length++;
+                if ((pinyinLength + length + 2) < (s32)sizeof(pinyinText)) {
+                    if (pinyinLength > 0) pinyinText[pinyinLength++] = ' ';
+                    memcpy(&pinyinText[pinyinLength], syllable, length);
+                    pinyinLength += length;
+                    pinyinText[pinyinLength] = '\\0';
+                }
+            }
         }
         x += glyphSize;
 '''
-    chunk = replace_once(chunk, glyph, glyph_new, "pinyin draw")
+    chunk = replace_once(chunk, glyph, glyph_new, "pinyin collection")
+    chunk = replace_once(
+        chunk,
+        "        x += glyphSize;\\n    }\\n}",
+        "        x += glyphSize;\\n    }\\n    if (pinyinLength > 0) cn_draw_pinyin_panel(gfxP, msgCtx, pinyinText);\\n}",
+        "draw pinyin panel",
+    )
     source = source[:start] + chunk + source[end:]
 
     page_y_old = r'''    } else {
