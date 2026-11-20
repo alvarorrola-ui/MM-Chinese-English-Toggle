@@ -31,19 +31,19 @@ static int get_state_path(wchar_t* path, DWORD path_count) {
     return 1;
 }
 
-static uint32_t is_f6_down(void) {
+static uint32_t is_ntilde_down(void) {
     HWND foreground = GetForegroundWindow();
     DWORD foreground_process = 0;
     if (foreground == NULL) return 0;
     GetWindowThreadProcessId(foreground, &foreground_process);
     if (foreground_process != GetCurrentProcessId()) return 0;
-    return (GetAsyncKeyState(VK_F6) & 0x8000) ? 1u : 0u;
+    return (GetAsyncKeyState(VK_OEM_1) & 0x8000) ? 1u : 0u;
 }
 
 /* Native library exports use the Recompiled guest-context ABI. */
-__declspec(dllexport) void mmcht_f6_down(uint8_t* rdram, recomp_context_prefix* ctx) {
+__declspec(dllexport) void mmcht_ntilde_down(uint8_t* rdram, recomp_context_prefix* ctx) {
     (void)rdram;
-    if (ctx != NULL) ctx->r2 = is_f6_down();
+    if (ctx != NULL) ctx->r2 = is_ntilde_down();
 }
 
 __declspec(dllexport) void mmcht_load_language(uint8_t* rdram, recomp_context_prefix* ctx) {
