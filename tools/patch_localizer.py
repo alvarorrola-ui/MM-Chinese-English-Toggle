@@ -49,16 +49,17 @@ typedef struct {
 RECOMP_IMPORT("mm_cht_input", u32 mmcht_f5_down(void));
 RECOMP_IMPORT("mm_cht_input", u32 mmcht_load_language(void));
 RECOMP_IMPORT("mm_cht_input", void mmcht_save_language(u32 enabled));
+
+/* State used by hooks declared below. */
+static bool sChineseEnabled;
+static bool sF5WasDown;
+static bool sOriginalDecodedBufferValid;
+static u8 sOriginalDecodedBuffer[sizeof(((MessageContext*)0)->decodedBuffer)];
 '''
     source = replace_once(source, anchor, anchor + imports, "insert imports")
 
     anchor = "static bool sVanillaTextHidden;\n"
-    state = r'''static bool sChineseEnabled;
-static bool sF5WasDown;
-static bool sOriginalDecodedBufferValid;
-static u8 sOriginalDecodedBuffer[sizeof(((MessageContext*)0)->decodedBuffer)];
-
-static bool cn_pinyin_enabled(void) {
+    state = r'''static bool cn_pinyin_enabled(void) {
     return recomp_get_config_u32("pinyin") == 1;
 }
 '''
