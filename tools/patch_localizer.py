@@ -281,7 +281,7 @@ void mmcht_poll_f5(PlayState* play) {
                             'authors = [ "alvarorrola-ui", "SilntRavn (Chinese localization)" ]',
                             "authors")
     manifest = replace_once(manifest, 'native_libraries = []',
-                            'native_libraries = [ { name = "mm_cht_input", exports = [ "mmcht_f5_down", "mmcht_load_language", "mmcht_save_language" ] } ]',
+                            'native_libraries = [ { name = "mm_cht_input", funcs = [ "mmcht_f5_down", "mmcht_load_language", "mmcht_save_language" ] } ]',
                             "native library declaration")
     manifest = replace_once(manifest, 'mod_filename = "mm_simplified_chinese"',
                             'mod_filename = "mm_chinese_english_toggle"', "mod filename")
