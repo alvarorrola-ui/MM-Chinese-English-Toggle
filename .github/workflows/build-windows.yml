@@ -20,7 +20,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
       - name: Install LLVM 18.1.8
         shell: pwsh
-        run: choco install llvm --version=18.1.8 -y --no-progress
+        run: choco install llvm --version=18.1.8 --allow-downgrade -y --no-progress
       - name: Install pinyin dependency
         shell: pwsh
         run: |
