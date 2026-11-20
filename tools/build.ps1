@@ -38,7 +38,7 @@ if (-not (Test-Path $Nrm)) { throw "Expected NRM was not produced: $Nrm" }
 
 Write-Host "Building Windows F5 bridge..."
 $NativeOutput = Join-Path $BuildDir "mm_cht_input.dll"
-cl.exe /nologo /LD /O2 /W4 (Join-Path $RepoRoot "native\mm_cht_input.c") /link "/OUT:$NativeOutput"
+cl.exe /nologo /LD /O2 /W4 (Join-Path $RepoRoot "native\mm_cht_input.c") /link user32.lib "/OUT:$NativeOutput"
 if ($LASTEXITCODE -ne 0) { throw "Native input bridge build failed." }
 
 $Dist = Join-Path $RepoRoot "dist"
