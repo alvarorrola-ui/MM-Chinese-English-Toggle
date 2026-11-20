@@ -83,11 +83,11 @@ static const char* cn_find_pinyin(u16 codepoint) {
     return NULL;
 }
 
-/* Render pinyin in a separate wrapped panel above the main dialogue. */
+/* Render pinyin in a separate, high-contrast panel above the dialogue. */
 static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char* text) {
-    const s16 panelLeft = 8, panelRight = 312, contentLeft = 13, contentRight = 307;
-    const s16 glyphSize = 5, advance = 5, rowHeight = 7, wordGap = 3;
-    const Color_RGB8 pinyinColor = { 225, 238, 255 };
+    const s16 panelLeft = 8, panelRight = 312, contentLeft = 16, contentRight = 304;
+    const s16 glyphSize = 8, advance = 9, rowHeight = 12, wordGap = 6;
+    const Color_RGB8 pinyinColor = { 255, 244, 205 };
     const char* word;
     s16 rows = 1, measureX = contentLeft, panelHeight, panelTop;
     s16 x, y, maxRows;
@@ -95,6 +95,7 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
 
     if (!cn_pinyin_enabled() || (text == NULL) || (*text == '\0')) return;
 
+    /* Measure wrapped syllables first; never split a syllable across rows. */
     word = text;
     while (*word != '\0') {
         s16 wordLength = 0;
@@ -109,52 +110,54 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
         if (*word == ' ') word++;
     }
 
-    panelHeight = rows * rowHeight + 6;
-    panelTop = msgCtx->textboxYTarget - panelHeight - 4;
+    panelHeight = rows * rowHeight + 8;
+    panelTop = msgCtx->textboxYTarget - panelHeight - 5;
     maxRows = rows;
-    if (panelTop < 30) {
-        panelTop = 30;
-        maxRows = (msgCtx->textboxYTarget - panelTop - 4) / rowHeight;
+    if (panelTop < 24) {
+        panelTop = 24;
+        maxRows = (msgCtx->textboxYTarget - panelTop - 5) / rowHeight;
         if (maxRows < 1) return;
-        if (maxRows < rows) panelHeight = maxRows * rowHeight + 6;
+        if (maxRows < rows) panelHeight = maxRows * rowHeight + 8;
     }
+    if (panelTop + panelHeight > 236) panelHeight = 236 - panelTop;
 
+    /*
+     * FillRectangle takes integer screen coordinates (unlike TextureRectangle,
+     * which uses quarter-pixel coordinates). Use the same primitive-alpha
+     * technique as Majora's Mask's own message renderer.
+     */
     gfx = *gfxP;
-    gDPPipeSync(gfx++);
-    gDPSetCycleType(gfx++, G_CYC_FILL);
-    gDPSetFillColor(gfx++, ((u32)GPACK_RGBA5551(110, 88, 55, 1) << 16) |
-                            GPACK_RGBA5551(110, 88, 55, 1));
-    gDPFillRectangle(gfx++, panelLeft << 2, panelTop << 2, panelRight << 2,
-                     (panelTop + panelHeight) << 2);
-    gDPSetFillColor(gfx++, ((u32)GPACK_RGBA5551(7, 10, 17, 1) << 16) |
-                            GPACK_RGBA5551(7, 10, 17, 1));
-    gDPFillRectangle(gfx++, (panelLeft + 1) << 2, (panelTop + 1) << 2,
-                     (panelRight - 1) << 2, (panelTop + panelHeight - 1) << 2);
     gDPPipeSync(gfx++);
     gDPSetCycleType(gfx++, G_CYC_1CYCLE);
     gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+    gDPSetCombineMode(gfx++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
+    gDPSetPrimColor(gfx++, 0, 0, 145, 111, 58, 235);
+    gDPFillRectangle(gfx++, panelLeft, panelTop, panelRight, panelTop + panelHeight);
+    gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, 225);
+    gDPFillRectangle(gfx++, panelLeft + 2, panelTop + 2, panelRight - 2, panelTop + panelHeight - 2);
+    gDPPipeSync(gfx++);
     gDPSetCombineLERP(gfx++, 0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0,
                       0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0);
     gDPSetTextureFilter(gfx++, G_TF_BILERP);
     *gfxP = gfx;
 
     x = contentLeft;
-    y = panelTop + 3;
+    y = panelTop + 4;
     word = text;
-    while ((*word != '\0') && (y + glyphSize <= panelTop + panelHeight - 2)) {
+    while ((*word != '\0') && (y + glyphSize <= panelTop + panelHeight - 3)) {
         s16 wordLength = 0, i;
         while ((word[wordLength] != '\0') && (word[wordLength] != ' ')) wordLength++;
         if (wordLength == 0) { word++; continue; }
         if ((x > contentLeft) && (x + wordLength * advance > contentRight)) {
             x = contentLeft;
             y += rowHeight;
-            if (y + glyphSize > panelTop + panelHeight - 2) break;
+            if (y + glyphSize > panelTop + panelHeight - 3) break;
         }
         for (i = 0; i < wordLength; i++) {
             const u8* glyph = cn_find_glyph((u16)word[i]);
             if (glyph != NULL) {
                 cn_draw_glyph_subpixel(gfxP, glyph, x, y, glyphSize, 0,
-                                       pinyinColor, 255, false);
+                                       pinyinColor, 255, true);
             }
             x += advance;
         }
