@@ -36,7 +36,7 @@ $BuildDir = Join-Path $ModDir "build"
 $Nrm = Join-Path $BuildDir "mm_chinese_english_toggle.nrm"
 if (-not (Test-Path $Nrm)) { throw "Expected NRM was not produced: $Nrm" }
 
-Write-Host "Building Windows F6 bridge..."
+Write-Host "Building Windows Ñ-key bridge..."
 $NativeOutput = Join-Path $BuildDir "mm_cht_input.dll"
 cl.exe /nologo /LD /O2 /W4 (Join-Path $RepoRoot "native\mm_cht_input.c") /link user32.lib "/OUT:$NativeOutput"
 if ($LASTEXITCODE -ne 0) { throw "Native input bridge build failed." }
@@ -54,7 +54,7 @@ MM Chinese-English Toggle — installation
    - mm_chinese_english_toggle.nrm
    - mm_cht_input.dll
 3. Enable "MM Chinese-English Toggle" in the in-game mod manager.
-4. Start in English. Press F6 to switch between English and Simplified Chinese.
+4. Start in English. Press Ñ to switch between English and Simplified Chinese.
 5. Optional: set Pinyin to On in this mod's configuration. It is Off by default.
 
 The chosen language is stored in mm_cht_language.state beside the DLL. This separate
