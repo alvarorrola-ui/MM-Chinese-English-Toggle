@@ -19,7 +19,7 @@ A Windows build now completes successfully in GitHub Actions. The generated pack
 - `mm_cht_input.dll`
 - `INSTALL.txt`
 
-The build uses a companion native Windows library to detect the Ñ key and an official per-frame Recompiled callback to switch languages. Pinyin tone-number data and a small Latin glyph atlas are generated at build time. See the latest successful [GitHub Actions run](https://github.com/alvarorrola-ui/MM-Chinese-English-Toggle/actions/runs/44723522418).
+The build uses a companion native Windows library to detect the Ñ key and an official per-frame Recompiled callback to switch languages. Pinyin tone-mark data and a dedicated Latin/accented-vowel glyph atlas are generated at build time. See the latest successful [GitHub Actions run](https://github.com/alvarorrola-ui/MM-Chinese-English-Toggle/actions/runs/44723522418).
 
 **Important:** compilation and packaging have passed, but the mod has not yet been validated inside a live Majora's Mask: Recompiled 1.2.2 game session. In particular, the live dialogue-switch behavior, all message paths, and pinyin layout still need in-game testing.
 
@@ -30,7 +30,7 @@ The build uses a companion native Windows library to detect the Ñ key and an of
 - Mod display name: `MM Chinese-English Toggle`
 - Initial language: English
 - Toggle: Ñ (required)
-- Pinyin: optional, default OFF
+- Pinyin: optional, tone diacritics (ā á ǎ à), default OFF
 - Persistence: language and pinyin preferences
 - Save/ROM safety: no save-file or ROM modifications
 
