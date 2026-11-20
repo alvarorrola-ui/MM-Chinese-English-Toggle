@@ -106,7 +106,13 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
     px = x + ((glyphSize - (length * 2)) / 2);
     for (i = 0; i < length; i++) {
         const u8* glyph = cn_find_pinyin_glyph(syllable[i]);
-        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, px, y + glyphSize - 1, 3, color, alpha, false);
+        /*
+         * Four pixels gives each half of the 128x128 atlas a two-pixel
+         * destination height. At three pixels, the first half used a 65536
+         * dtdy step, which is truncated by the 16-bit RDP texture-rectangle
+         * command and can make the pinyin glyph disappear.
+         */
+        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, px, y + glyphSize, 4, color, alpha, false);
         px += 2;
     }
 }
