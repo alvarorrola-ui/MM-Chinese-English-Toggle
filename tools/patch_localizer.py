@@ -169,6 +169,13 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
     start = source.index("static void cn_draw_page(PlayState* play, Gfx** gfxP) {")
     end = source.index("static bool cn_message_draws_text_this_frame", start)
     chunk = source[start:end]
+    chunk = replace_once(
+        chunk,
+        "    u16 i;\n\n    if (sMessage == NULL) {",
+        "    u16 i;\n    char pinyinText[1024];\n    s32 pinyinLength = 0;\n\n    pinyinText[0] = '\\0';\n    if (sMessage == NULL) {",
+        "pinyin buffer",
+    )
+
     # Pinyin has its own panel; leave Chinese line spacing unchanged.
     glyph = r'''        const u8* glyph = cn_find_glyph(command);
         if (glyph != NULL) {
