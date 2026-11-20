@@ -14,9 +14,14 @@ Optional pinyin is intended to appear on a second line below Chinese characters.
 
 ## Current status
 
-This repository currently contains the project specification and technical investigation. It is **not yet a working or installable mod**. No `.nrm` has been built or tested.
+A Windows build now completes successfully in GitHub Actions. The generated package contains:
+- `mm_chinese_english_toggle.nrm`
+- `mm_cht_input.dll`
+- `INSTALL.txt`
 
-The main unresolved engineering requirement is reliable F5 input detection from a Majora's Mask: Recompiled mod. The official mod template exposes configuration and UI APIs, but the public mod API inspected so far does not establish a supported arbitrary-key polling interface. We must not substitute an unverified SDL/native-DLL polling trick and claim it works.
+The build uses a companion native Windows library to detect F5 and an official per-frame Recompiled callback to switch languages. Pinyin tone-number data and a small Latin glyph atlas are generated at build time. See the latest successful [GitHub Actions run](https://github.com/alvarorrola-ui/MM-Chinese-English-Toggle/actions/runs/44723522418).
+
+**Important:** compilation and packaging have passed, but the mod has not yet been validated inside a live Majora's Mask: Recompiled 1.2.2 game session. In particular, the live dialogue-switch behavior, all message paths, and pinyin layout still need in-game testing.
 
 ## Target compatibility
 
