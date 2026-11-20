@@ -55,9 +55,9 @@ def main() -> None:
             rows.append((ord(character), syllable))
 
     font_candidates = [
-        Path(r"C:\Windows\Fonts\arial.ttf"),
-        Path(r"C:\Windows\Fonts\segoeui.ttf"),
-        Path(r"C:\Windows\Fonts\tahoma.ttf"),
+        Path(r"C:\Windows\Fonts\arialbd.ttf"),
+        Path(r"C:\Windows\Fonts\segoeuib.ttf"),
+        Path(r"C:\Windows\Fonts\tahomabd.ttf"),
     ]
     font_path = next((candidate for candidate in font_candidates if candidate.exists()), None)
     if font_path is None:
