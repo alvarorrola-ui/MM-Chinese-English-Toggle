@@ -13,6 +13,8 @@ The output package contains:
 
 Both binary files must be placed beside one another in the game's mods folder.
 
+Before enabling this mod, keep the upstream `mm_chinese_localization_texture` dependency enabled and above this mod in the mod list. If the original `mm_chinese_localization_text` mod is installed, disable it: both text mods hook the same message-rendering functions and must not run together.
+
 ## Design
 
 - F5 is sampled by a Windows native library and edge-detected in the official recomp_on_play_main callback.
