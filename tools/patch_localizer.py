@@ -197,12 +197,12 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
             const char* syllable = cn_find_pinyin(command);
             if (syllable != NULL) {
                 s32 length = 0;
-                while (syllable[length] != '\\0') length++;
+                while (syllable[length] != '\0') length++;
                 if ((pinyinLength + length + 2) < (s32)sizeof(pinyinText)) {
                     if (pinyinLength > 0) pinyinText[pinyinLength++] = ' ';
                     memcpy(&pinyinText[pinyinLength], syllable, length);
                     pinyinLength += length;
-                    pinyinText[pinyinLength] = '\\0';
+                    pinyinText[pinyinLength] = '\0';
                 }
             }
         }
