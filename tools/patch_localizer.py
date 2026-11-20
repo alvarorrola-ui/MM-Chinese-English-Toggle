@@ -71,16 +71,6 @@ static u8 sOriginalDecodedBuffer[sizeof(((MessageContext*)0)->decodedBuffer)];
 }
 '''
     pinyin_helpers = r'''
-static const u8* cn_find_pinyin_glyph(char character) {
-    u32 i;
-    for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
-        if (gCnPinyinGlyphCharacters[i] == character) {
-            return gCnPinyinGlyphBitmaps[i];
-        }
-    }
-    return NULL;
-}
-
 static const char* cn_find_pinyin(u16 codepoint) {
     s32 low = 0;
     s32 high = (s32)ARRAY_COUNT(gCnPinyinEntries) - 1;
@@ -92,34 +82,8 @@ static const char* cn_find_pinyin(u16 codepoint) {
     }
     return NULL;
 }
-static void cn_draw_pinyin_glyph(Gfx** gfxP, const u8* texture, s16 x, s16 y,
-                                 Color_RGB8 color, u8 alpha) {
-    Gfx* gfx = *gfxP;
-    const u8* secondTexture = texture + (CN_GLYPH_HALF_SIZE * CN_GLYPH_TEX_SIZE / 2);
-    const s32 scaleX = (CN_GLYPH_TEX_SIZE << 10) / 3; /* 3 destination pixels */
-    const s32 firstScaleY = (CN_GLYPH_HALF_SIZE << 10) / 2;
-    const s32 secondScaleY = (CN_GLYPH_HALF_SIZE << 10) / 3;
 
-    /* Keep tiny Latin strokes crisp instead of filtering them away. */
-    gDPPipeSync(gfx++);
-    gDPSetTextureFilter(gfx++, G_TF_POINT);
-    gDPLoadTextureBlock_4b(gfx++, texture, G_IM_FMT_I, CN_GLYPH_TEX_SIZE, CN_GLYPH_HALF_SIZE, 0,
-                           G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMIRROR | G_TX_CLAMP,
-                           G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    gDPSetPrimColor(gfx++, 0, 0, color.r, color.g, color.b, alpha);
-    gSPTextureRectangle(gfx++, x << 2, y << 2, (x + 3) << 2, (y + 2) << 2,
-                        G_TX_RENDERTILE, 0, 0, scaleX, firstScaleY);
-    gDPPipeSync(gfx++);
-    gDPLoadTextureBlock_4b(gfx++, secondTexture, G_IM_FMT_I, CN_GLYPH_TEX_SIZE, CN_GLYPH_HALF_SIZE, 0,
-                           G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMIRROR | G_TX_CLAMP,
-                           G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
-    gDPSetPrimColor(gfx++, 0, 0, color.r, color.g, color.b, alpha);
-    gSPTextureRectangle(gfx++, x << 2, (y + 2) << 2, (x + 3) << 2, (y + 5) << 2,
-                        G_TX_RENDERTILE, 0, 0, scaleX, secondScaleY);
-    gDPSetTextureFilter(gfx++, G_TF_BILERP);
-    *gfxP = gfx;
-}
-
+/* Reuse the Chinese mod's established atlas and glyph renderer for Latin text. */
 static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
                            s16 glyphSize, Color_RGB8 color, u8 alpha) {
     const char* syllable;
@@ -130,12 +94,13 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
     syllable = cn_find_pinyin(codepoint);
     if (syllable == NULL) return;
     while (syllable[length] != '\0') length++;
-    /* Each 3x5 letter advances by two pixels: a complete 4-letter syllable
-     * fits under one 10-pixel Hanzi cell while remaining visible at native scale. */
-    px = x + ((glyphSize - ((length * 2) + 1)) / 2);
+    px = x + ((glyphSize - (length * 2)) / 2);
     for (i = 0; i < length; i++) {
-        const u8* glyph = cn_find_pinyin_glyph(syllable[i]);
-        if (glyph != NULL) cn_draw_pinyin_glyph(gfxP, glyph, px, y + glyphSize, color, alpha);
+        const u8* glyph = cn_find_glyph((u16)syllable[i]);
+        if (glyph != NULL) {
+            cn_draw_glyph_subpixel(gfxP, glyph, px, y + glyphSize + 1, 5, 0,
+                                   color, alpha, false);
+        }
         px += 2;
     }
 }
@@ -295,6 +260,19 @@ void mmcht_poll_ntilde(PlayState* play) {
 '''
     source = source.rstrip() + callbacks + "\n"
     source_path.write_text(source, encoding="utf-8", newline="\n")
+
+    # Add every Latin letter and tone digit to the localization's proven glyph atlas.
+    generator_path = mod_dir.parent / "tools" / "generate_mod_data.py"
+    generator = generator_path.read_text(encoding="utf-8")
+    glyph_anchor = '    font = ImageFont.truetype(str(font_path), GLYPH_FONT_SIZE)\\n'
+    glyph_addition = (
+        '    # MMCHT: glyphs used by generated pinyin syllables.\\n'
+        '    codepoints = sorted(set(codepoints) | {ord(char) for char in "abcdefghijklmnopqrstuvwxyz12345"})\\n'
+    )
+    if "MMCHT: glyphs used by generated pinyin syllables." not in generator:
+        generator = replace_once(generator, glyph_anchor, glyph_addition + glyph_anchor,
+                                 "add pinyin Latin glyphs to main atlas")
+        generator_path.write_text(generator, encoding="utf-8", newline="\\n")
 
     manifest = manifest_path.read_text(encoding="utf-8")
     manifest = replace_once(manifest, 'id = "mm_chinese_localization_text"',
