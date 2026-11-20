@@ -71,6 +71,16 @@ static u8 sOriginalDecodedBuffer[sizeof(((MessageContext*)0)->decodedBuffer)];
 }
 '''
     pinyin_helpers = r'''
+static const u8* cn_find_pinyin_glyph(char character) {
+    u32 i;
+    for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
+        if (gCnPinyinGlyphCharacters[i] == character) {
+            return gCnPinyinGlyphBitmaps[i];
+        }
+    }
+    return NULL;
+}
+
 static const char* cn_find_pinyin(u16 codepoint) {
     s32 low = 0;
     s32 high = (s32)ARRAY_COUNT(gCnPinyinEntries) - 1;
@@ -95,7 +105,7 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
     while (syllable[length] != '\0') length++;
     px = x + ((glyphSize - (length * 2)) / 2);
     for (i = 0; i < length; i++) {
-        const u8* glyph = cn_find_glyph((u8)syllable[i]);
+        const u8* glyph = cn_find_pinyin_glyph(syllable[i]);
         if (glyph != NULL) cn_draw_glyph(gfxP, glyph, px, y + glyphSize - 1, 3, color, alpha, false);
         px += 2;
     }
