@@ -1,0 +1,6 @@
+[submodule "third_party/chinese-localization"]
+	path = third_party/chinese-localization
+	url = https://github.com/SilntRavn/MajorasMask-Chinese-Localization
+[submodule "third_party/mm-decomp"]
+	path = third_party/mm-decomp
+	url = https://github.com/zeldaret/mm
