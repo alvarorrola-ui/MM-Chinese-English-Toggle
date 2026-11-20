@@ -211,8 +211,8 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
     chunk = replace_once(chunk, glyph, glyph_new, "pinyin collection")
     chunk = replace_once(
         chunk,
-        "        x += glyphSize;\\n    }\\n}",
-        "        x += glyphSize;\\n    }\\n    if (pinyinLength > 0) cn_draw_pinyin_panel(gfxP, msgCtx, pinyinText);\\n}",
+        "        x += glyphSize;\n    }\n}",
+        "        x += glyphSize;\n    }\n    if (pinyinLength > 0) cn_draw_pinyin_panel(gfxP, msgCtx, pinyinText);\n}",
         "draw pinyin panel",
     )
     source = source[:start] + chunk + source[end:]
