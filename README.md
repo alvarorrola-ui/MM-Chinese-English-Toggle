@@ -8,7 +8,7 @@ Switch the in-game text language between:
 - **English** (default)
 - **Simplified Chinese** (based on the community Chinese localization)
 
-The intended hotkey is **F6**. The language must change immediately, including while a message is open, without closing the dialogue, restarting the game, resetting progress, editing the ROM, or modifying save files.
+The intended hotkey is **Ñ**. The language must change immediately, including while a message is open, without closing the dialogue, restarting the game, resetting progress, editing the ROM, or modifying save files.
 
 Optional pinyin is intended to appear on a second line below Chinese characters. It is **OFF by default**. User preferences must persist.
 
@@ -19,7 +19,7 @@ A Windows build now completes successfully in GitHub Actions. The generated pack
 - `mm_cht_input.dll`
 - `INSTALL.txt`
 
-The build uses a companion native Windows library to detect F6 and an official per-frame Recompiled callback to switch languages. Pinyin tone-number data and a small Latin glyph atlas are generated at build time. See the latest successful [GitHub Actions run](https://github.com/alvarorrola-ui/MM-Chinese-English-Toggle/actions/runs/44723522418).
+The build uses a companion native Windows library to detect the Ñ key and an official per-frame Recompiled callback to switch languages. Pinyin tone-number data and a small Latin glyph atlas are generated at build time. See the latest successful [GitHub Actions run](https://github.com/alvarorrola-ui/MM-Chinese-English-Toggle/actions/runs/44723522418).
 
 **Important:** compilation and packaging have passed, but the mod has not yet been validated inside a live Majora's Mask: Recompiled 1.2.2 game session. In particular, the live dialogue-switch behavior, all message paths, and pinyin layout still need in-game testing.
 
@@ -29,7 +29,7 @@ The build uses a companion native Windows library to detect F6 and an official p
 - Minimum version: `1.2.2`
 - Mod display name: `MM Chinese-English Toggle`
 - Initial language: English
-- Toggle: F6 (required)
+- Toggle: Ñ (required)
 - Pinyin: optional, default OFF
 - Persistence: language and pinyin preferences
 - Save/ROM safety: no save-file or ROM modifications
@@ -40,7 +40,7 @@ The build uses a companion native Windows library to detect F6 and an official p
 2. Separate language selection from message rendering so English text is restored correctly when Chinese mode is inactive.
 3. Implement a safe language switch at message decode/draw boundaries so an already-open dialogue updates without resetting its current progress.
 4. Add persistent mod settings for language and pinyin.
-5. Add F6 only through a verified, supported input path for this exact Recompiled runtime version.
+5. Add Ñ only through a verified, supported input path for this exact Recompiled runtime version.
 6. Build with the official Majora's Mask: Recompiled mod toolchain and test in-game.
 
 ## Important technical constraint
