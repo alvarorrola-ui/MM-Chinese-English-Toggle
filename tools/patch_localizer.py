@@ -83,25 +83,84 @@ static const char* cn_find_pinyin(u16 codepoint) {
     return NULL;
 }
 
-/* Reuse the Chinese mod's established atlas and glyph renderer for Latin text. */
-static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
-                           s16 glyphSize, Color_RGB8 color, u8 alpha) {
-    const char* syllable;
-    s16 length = 0;
-    s16 px;
-    s16 i;
-    if (!cn_pinyin_enabled()) return;
-    syllable = cn_find_pinyin(codepoint);
-    if (syllable == NULL) return;
-    while (syllable[length] != '\0') length++;
-    px = x + ((glyphSize - (length * 2)) / 2);
-    for (i = 0; i < length; i++) {
-        const u8* glyph = cn_find_glyph((u16)syllable[i]);
-        if (glyph != NULL) {
-            cn_draw_glyph_subpixel(gfxP, glyph, px, y + glyphSize + 1, 5, 0,
-                                   color, alpha, false);
+/* Render pinyin in a separate wrapped panel above the main dialogue. */
+static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char* text) {
+    const s16 panelLeft = 8, panelRight = 312, contentLeft = 13, contentRight = 307;
+    const s16 glyphSize = 5, advance = 5, rowHeight = 7, wordGap = 3;
+    const Color_RGB8 pinyinColor = { 225, 238, 255 };
+    const char* word;
+    s16 rows = 1, measureX = contentLeft, panelHeight, panelTop;
+    s16 x, y, maxRows;
+    Gfx* gfx;
+
+    if (!cn_pinyin_enabled() || (text == NULL) || (*text == '\0')) return;
+
+    word = text;
+    while (*word != '\0') {
+        s16 wordLength = 0;
+        while ((word[wordLength] != '\0') && (word[wordLength] != ' ')) wordLength++;
+        if (wordLength == 0) { word++; continue; }
+        if ((measureX > contentLeft) && (measureX + wordLength * advance > contentRight)) {
+            rows++;
+            measureX = contentLeft;
         }
-        px += 2;
+        measureX += (wordLength * advance) + wordGap;
+        word += wordLength;
+        if (*word == ' ') word++;
+    }
+
+    panelHeight = rows * rowHeight + 6;
+    panelTop = msgCtx->textboxYTarget - panelHeight - 4;
+    maxRows = rows;
+    if (panelTop < 30) {
+        panelTop = 30;
+        maxRows = (msgCtx->textboxYTarget - panelTop - 4) / rowHeight;
+        if (maxRows < 1) return;
+        if (maxRows < rows) panelHeight = maxRows * rowHeight + 6;
+    }
+
+    gfx = *gfxP;
+    gDPPipeSync(gfx++);
+    gDPSetCycleType(gfx++, G_CYC_FILL);
+    gDPSetFillColor(gfx++, ((u32)GPACK_RGBA5551(110, 88, 55, 1) << 16) |
+                            GPACK_RGBA5551(110, 88, 55, 1));
+    gDPFillRectangle(gfx++, panelLeft << 2, panelTop << 2, panelRight << 2,
+                     (panelTop + panelHeight) << 2);
+    gDPSetFillColor(gfx++, ((u32)GPACK_RGBA5551(7, 10, 17, 1) << 16) |
+                            GPACK_RGBA5551(7, 10, 17, 1));
+    gDPFillRectangle(gfx++, (panelLeft + 1) << 2, (panelTop + 1) << 2,
+                     (panelRight - 1) << 2, (panelTop + panelHeight - 1) << 2);
+    gDPPipeSync(gfx++);
+    gDPSetCycleType(gfx++, G_CYC_1CYCLE);
+    gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+    gDPSetCombineLERP(gfx++, 0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0,
+                      0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0);
+    gDPSetTextureFilter(gfx++, G_TF_BILERP);
+    *gfxP = gfx;
+
+    x = contentLeft;
+    y = panelTop + 3;
+    word = text;
+    while ((*word != '\0') && (y + glyphSize <= panelTop + panelHeight - 2)) {
+        s16 wordLength = 0, i;
+        while ((word[wordLength] != '\0') && (word[wordLength] != ' ')) wordLength++;
+        if (wordLength == 0) { word++; continue; }
+        if ((x > contentLeft) && (x + wordLength * advance > contentRight)) {
+            x = contentLeft;
+            y += rowHeight;
+            if (y + glyphSize > panelTop + panelHeight - 2) break;
+        }
+        for (i = 0; i < wordLength; i++) {
+            const u8* glyph = cn_find_glyph((u16)word[i]);
+            if (glyph != NULL) {
+                cn_draw_glyph_subpixel(gfxP, glyph, x, y, glyphSize, 0,
+                                       pinyinColor, 255, false);
+            }
+            x += advance;
+        }
+        x += wordGap;
+        word += wordLength;
+        if (*word == ' ') word++;
     }
 }
 '''
