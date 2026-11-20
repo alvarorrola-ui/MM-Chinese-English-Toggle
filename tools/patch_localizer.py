@@ -92,6 +92,33 @@ static const char* cn_find_pinyin(u16 codepoint) {
     }
     return NULL;
 }
+static void cn_draw_pinyin_glyph(Gfx** gfxP, const u8* texture, s16 x, s16 y,
+                                 Color_RGB8 color, u8 alpha) {
+    Gfx* gfx = *gfxP;
+    const u8* secondTexture = texture + (CN_GLYPH_HALF_SIZE * CN_GLYPH_TEX_SIZE / 2);
+    const s32 scaleX = (CN_GLYPH_TEX_SIZE << 10) / 3; /* 3 destination pixels */
+    const s32 firstScaleY = (CN_GLYPH_HALF_SIZE << 10) / 2;
+    const s32 secondScaleY = (CN_GLYPH_HALF_SIZE << 10) / 3;
+
+    /* Keep tiny Latin strokes crisp instead of filtering them away. */
+    gDPPipeSync(gfx++);
+    gDPSetTextureFilter(gfx++, G_TF_POINT);
+    gDPLoadTextureBlock_4b(gfx++, texture, G_IM_FMT_I, CN_GLYPH_TEX_SIZE, CN_GLYPH_HALF_SIZE, 0,
+                           G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMIRROR | G_TX_CLAMP,
+                           G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    gDPSetPrimColor(gfx++, 0, 0, color.r, color.g, color.b, alpha);
+    gSPTextureRectangle(gfx++, x << 2, y << 2, (x + 3) << 2, (y + 2) << 2,
+                        G_TX_RENDERTILE, 0, 0, scaleX, firstScaleY);
+    gDPPipeSync(gfx++);
+    gDPLoadTextureBlock_4b(gfx++, secondTexture, G_IM_FMT_I, CN_GLYPH_TEX_SIZE, CN_GLYPH_HALF_SIZE, 0,
+                           G_TX_NOMIRROR | G_TX_CLAMP, G_TX_NOMIRROR | G_TX_CLAMP,
+                           G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+    gDPSetPrimColor(gfx++, 0, 0, color.r, color.g, color.b, alpha);
+    gSPTextureRectangle(gfx++, x << 2, (y + 2) << 2, (x + 3) << 2, (y + 5) << 2,
+                        G_TX_RENDERTILE, 0, 0, scaleX, secondScaleY);
+    gDPSetTextureFilter(gfx++, G_TF_BILERP);
+    *gfxP = gfx;
+}
 
 static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
                            s16 glyphSize, Color_RGB8 color, u8 alpha) {
@@ -103,16 +130,12 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
     syllable = cn_find_pinyin(codepoint);
     if (syllable == NULL) return;
     while (syllable[length] != '\0') length++;
-    px = x + ((glyphSize - (length * 2)) / 2);
+    /* Each 3x5 letter advances by two pixels: a complete 4-letter syllable
+     * fits under one 10-pixel Hanzi cell while remaining visible at native scale. */
+    px = x + ((glyphSize - ((length * 2) + 1)) / 2);
     for (i = 0; i < length; i++) {
         const u8* glyph = cn_find_pinyin_glyph(syllable[i]);
-        /*
-         * Four pixels gives each half of the 128x128 atlas a two-pixel
-         * destination height. At three pixels, the first half used a 65536
-         * dtdy step, which is truncated by the 16-bit RDP texture-rectangle
-         * command and can make the pinyin glyph disappear.
-         */
-        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, px, y + glyphSize, 4, color, alpha, false);
+        if (glyph != NULL) cn_draw_pinyin_glyph(gfxP, glyph, px, y + glyphSize, color, alpha);
         px += 2;
     }
 }
@@ -123,7 +146,7 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
     end = source.index("static bool cn_message_draws_text_this_frame", start)
     chunk = source[start:end]
     chunk = replace_once(chunk, "                y += msgCtx->lineHeight;\n",
-                         "                y += msgCtx->lineHeight + (cn_pinyin_enabled() ? 4 : 0);\n",
+                         "                y += msgCtx->lineHeight + (cn_pinyin_enabled() ? 6 : 0);\n",
                          "pinyin line spacing")
     glyph = r'''        const u8* glyph = cn_find_glyph(command);
         if (glyph != NULL) {
@@ -164,7 +187,7 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
         }
     }
     if (cn_pinyin_enabled() && (page->lineCount > 1)) {
-        offset -= (page->lineCount - 1) * 2;
+        offset -= (page->lineCount - 1) * 3;
     }
     return msgCtx->textboxYTarget + offset;
 }'''
