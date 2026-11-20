@@ -264,15 +264,15 @@ void mmcht_poll_ntilde(PlayState* play) {
     # Add every Latin letter and tone digit to the localization's proven glyph atlas.
     generator_path = mod_dir.parent / "tools" / "generate_mod_data.py"
     generator = generator_path.read_text(encoding="utf-8")
-    glyph_anchor = '    font = ImageFont.truetype(str(font_path), GLYPH_FONT_SIZE)\\n'
+    glyph_anchor = '    font = ImageFont.truetype(str(font_path), GLYPH_FONT_SIZE)\n'
     glyph_addition = (
-        '    # MMCHT: glyphs used by generated pinyin syllables.\\n'
-        '    codepoints = sorted(set(codepoints) | {ord(char) for char in "abcdefghijklmnopqrstuvwxyz12345"})\\n'
+        '    # MMCHT: glyphs used by generated pinyin syllables.\n'
+        '    codepoints = sorted(set(codepoints) | {ord(char) for char in "abcdefghijklmnopqrstuvwxyz12345"})\n'
     )
     if "MMCHT: glyphs used by generated pinyin syllables." not in generator:
         generator = replace_once(generator, glyph_anchor, glyph_addition + glyph_anchor,
                                  "add pinyin Latin glyphs to main atlas")
-        generator_path.write_text(generator, encoding="utf-8", newline="\\n")
+        generator_path.write_text(generator, encoding="utf-8", newline="\n")
 
     manifest = manifest_path.read_text(encoding="utf-8")
     manifest = replace_once(manifest, 'id = "mm_chinese_localization_text"',
