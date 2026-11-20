@@ -23,7 +23,7 @@ Write-Host "Patching pinned Chinese localization source..."
 python (Join-Path $PSScriptRoot "patch_localizer.py") --mod-dir $ModDir
 if ($LASTEXITCODE -ne 0) { throw "Localizer patch step failed." }
 
-Write-Host "Generating tone-number pinyin lookup..."
+Write-Host "Generating tone-marked pinyin lookup..."
 python (Join-Path $PSScriptRoot "generate_pinyin.py") --cnmod-root $CnmodRoot --output (Join-Path $ModDir "src\generated\pinyin_data.inc")
 if ($LASTEXITCODE -ne 0) { throw "Pinyin generation failed." }
 
