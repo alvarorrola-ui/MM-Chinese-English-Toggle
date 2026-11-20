@@ -17,7 +17,7 @@ Before enabling this mod, keep the upstream `mm_chinese_localization_texture` de
 
 ## Design
 
-- F5 is sampled by a Windows native library and edge-detected in the official recomp_on_play_main callback.
+- F6 is sampled by a Windows native library and edge-detected in the official recomp_on_play_main callback.
 - Language choice is stored in mm_cht_language.state beside the DLL. The initial value is English.
 - The original decoded English message buffer is saved before the Chinese renderer hides it. Switching back restores it, including during an open dialogue.
 - Pinyin is generated from the reviewed and supplemental upstream translations, includes tone numbers, and is disabled by default.
@@ -26,4 +26,4 @@ Before enabling this mod, keep the upstream `mm_chinese_localization_texture` de
 
 ## Not yet verified in-game
 
-The code must be compiled and then tested in a real 1.2.2 installation to verify the native ABI, F5 behavior, text switching on every text path, and pinyin spacing. A successful compiler run is not proof of in-game behavior.
+The code must be compiled and then tested in a real 1.2.2 installation to verify the native ABI, F6 behavior, text switching on every text path, and pinyin spacing. A successful compiler run is not proof of in-game behavior.
