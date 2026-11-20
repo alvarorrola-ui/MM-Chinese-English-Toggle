@@ -83,10 +83,19 @@ static const char* cn_find_pinyin(u16 codepoint) {
     return NULL;
 }
 
+/* Dedicated, complete atlas: do not depend on Latin entries in the prebuilt CJK atlas. */
+static const u8* cn_find_pinyin_glyph(char character) {
+    u32 i;
+    for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
+        if (gCnPinyinGlyphCharacters[i] == character) return gCnPinyinGlyphBitmaps[i];
+    }
+    return NULL;
+}
+
 /* Render pinyin in a separate, high-contrast panel above the dialogue. */
 static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char* text) {
     const s16 panelLeft = 8, panelRight = 312, contentLeft = 16, contentRight = 304;
-    const s16 glyphSize = 8, advance = 9, rowHeight = 12, wordGap = 6;
+    const s16 glyphSize = 10, advance = 10, rowHeight = 14, wordGap = 5;
     const Color_RGB8 pinyinColor = { 255, 244, 205 };
     const char* word;
     s16 rows = 1, measureX = contentLeft, panelHeight, panelTop;
@@ -154,8 +163,9 @@ static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char*
             if (y + glyphSize > panelTop + panelHeight - 3) break;
         }
         for (i = 0; i < wordLength; i++) {
-            const u8* glyph = cn_find_glyph((u16)word[i]);
+            const u8* glyph = cn_find_pinyin_glyph(word[i]);
             if (glyph != NULL) {
+                /* Reuse the proven N64 glyph routine, but feed it the dedicated Latin atlas. */
                 cn_draw_glyph_subpixel(gfxP, glyph, x, y, glyphSize, 0,
                                        pinyinColor, 255, true);
             }
@@ -334,18 +344,6 @@ void mmcht_poll_ntilde(PlayState* play) {
     source = source.rstrip() + callbacks + "\n"
     source_path.write_text(source, encoding="utf-8", newline="\n")
 
-    # Add every Latin letter and tone digit to the localization's proven glyph atlas.
-    generator_path = mod_dir.parent / "tools" / "generate_mod_data.py"
-    generator = generator_path.read_text(encoding="utf-8")
-    glyph_anchor = '    font = ImageFont.truetype(str(font_path), GLYPH_FONT_SIZE)\n'
-    glyph_addition = (
-        '    # MMCHT: glyphs used by generated pinyin syllables.\n'
-        '    codepoints = sorted(set(codepoints) | {ord(char) for char in "abcdefghijklmnopqrstuvwxyz12345"})\n'
-    )
-    if "MMCHT: glyphs used by generated pinyin syllables." not in generator:
-        generator = replace_once(generator, glyph_anchor, glyph_addition + glyph_anchor,
-                                 "add pinyin Latin glyphs to main atlas")
-        generator_path.write_text(generator, encoding="utf-8", newline="\n")
 
     manifest = manifest_path.read_text(encoding="utf-8")
     manifest = replace_once(manifest, 'id = "mm_chinese_localization_text"',
