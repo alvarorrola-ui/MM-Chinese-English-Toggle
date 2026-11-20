@@ -160,8 +160,24 @@ def main() -> None:
             output.write("    },\n")
         output.write("};\n")
 
+    # Assert orthographic placement for common cases before packaging.
+    examples = {
+        "ni3": "nǐ",
+        "hao3": "hǎo",
+        "xue2": "xué",
+        "liu2": "liú",
+        "gui3": "guǐ",
+        "nv3": "nǚ",
+        "ma5": "ma",
+    }
+    for source_syllable, expected in examples.items():
+        actual = tone3_to_marked(source_syllable)
+        if actual != expected:
+            raise SystemExit(f"Tone-mark self-test failed for {source_syllable}: {actual!r} != {expected!r}")
+        encode_syllable(actual)
+
     print(f"Generated marked pinyin for {len(rows)} Hanzi and {len(TOKEN_CHARS)} glyphs.")
-    print("Examples: ni3 -> nǐ, hao3 -> hǎo, xue2 -> xué, liu2 -> liú, nv3 -> nǚ.")
+    print("Tone placement self-tests passed: ni3, hao3, xue2, liu2, gui3, nv3, ma5.")
 
 
 if __name__ == "__main__":
