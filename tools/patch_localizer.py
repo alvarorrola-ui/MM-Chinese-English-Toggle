@@ -46,13 +46,13 @@ typedef struct {
 
 #include "generated/pinyin_data.inc"
 
-RECOMP_IMPORT(".", u32 mmcht_f6_down(void));
+RECOMP_IMPORT(".", u32 mmcht_ntilde_down(void));
 RECOMP_IMPORT(".", u32 mmcht_load_language(void));
 RECOMP_IMPORT(".", void mmcht_save_language(u32 enabled));
 
 /* State used by hooks declared below. */
 static bool sChineseEnabled;
-static bool sF6WasDown;
+static bool sNtildeWasDown;
 static bool sOriginalDecodedBufferValid;
 static u8 sOriginalDecodedBuffer[sizeof(((MessageContext*)0)->decodedBuffer)];
 '''
@@ -234,7 +234,7 @@ static void cn_draw_pinyin(Gfx** gfxP, u16 codepoint, s16 x, s16 y,
     callbacks = r'''
 
 /* MMCHT_LANGUAGE_TOGGLE_PATCH
- * F6 is polled by the companion Windows native library and edge-detected here.
+ * the Ñ key is polled by the companion Windows native library and edge-detected here.
  * The saved retail decoded buffer is restored before vanilla rendering resumes.
  */
 static void mmcht_set_language(PlayState* play, bool chinese) {
@@ -251,17 +251,17 @@ static void mmcht_set_language(PlayState* play, bool chinese) {
 RECOMP_CALLBACK("*", recomp_on_init)
 void mmcht_initialize_language(void) {
     sChineseEnabled = (mmcht_load_language() != 0);
-    sF6WasDown = (mmcht_f6_down() != 0);
+    sNtildeWasDown = (mmcht_ntilde_down() != 0);
 }
 
 RECOMP_CALLBACK("*", recomp_on_play_main)
-void mmcht_poll_f6(PlayState* play) {
-    bool f6Down = (mmcht_f6_down() != 0);
-    if (f6Down && !sF6WasDown) {
+void mmcht_poll_ntilde(PlayState* play) {
+    bool ntildeDown = (mmcht_ntilde_down() != 0);
+    if (ntildeDown && !sNtildeWasDown) {
         mmcht_set_language(play, !sChineseEnabled);
         mmcht_save_language(sChineseEnabled ? 1 : 0);
     }
-    sF6WasDown = f6Down;
+    sNtildeWasDown = ntildeDown;
 }
 '''
     source = source.rstrip() + callbacks + "\n"
@@ -275,13 +275,13 @@ void mmcht_poll_f6(PlayState* play) {
     manifest = replace_once(manifest, 'version = "1.0.0"',
                             'version = "0.1.0"', "manifest version")
     manifest = replace_once(manifest, 'short_description = "《魔吉拉的面具》高清中文语言包(文本)"',
-                            'short_description = "Switch English and Simplified Chinese with F6."',
+                            'short_description = "Switch English and Simplified Chinese with Ñ."',
                             "short description")
     manifest = replace_once(manifest, 'authors = [ "SilntRavn" ]',
                             'authors = [ "alvarorrola-ui", "SilntRavn (Chinese localization)" ]',
                             "authors")
     manifest = replace_once(manifest, 'native_libraries = []',
-                            'native_libraries = [ { name = "mm_cht_input", funcs = [ "mmcht_f6_down", "mmcht_load_language", "mmcht_save_language" ] } ]',
+                            'native_libraries = [ { name = "mm_cht_input", funcs = [ "mmcht_ntilde_down", "mmcht_load_language", "mmcht_save_language" ] } ]',
                             "native library declaration")
     manifest = replace_once(manifest, 'mod_filename = "mm_simplified_chinese"',
                             'mod_filename = "mm_chinese_english_toggle"', "mod filename")
