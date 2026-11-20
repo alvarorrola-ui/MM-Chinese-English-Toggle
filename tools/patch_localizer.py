@@ -368,7 +368,7 @@ void mmcht_poll_ntilde(PlayState* play) {
 [[manifest.config_options]]
 id = "pinyin"
 name = "Pinyin"
-description = "Show tone-number pinyin below Chinese dialogue characters. Off by default."
+description = "Show tone-marked pinyin (ā á ǎ à) in a separate readable panel. Off by default."
 type = "Enum"
 options = [ "Off", "On" ]
 default = "Off"
