@@ -90,14 +90,16 @@ def pack_i4(character: str, font: ImageFont.FreeTypeFont) -> bytes:
     image = Image.new("L", (GLYPH_SIZE, GLYPH_SIZE), 0)
     draw = ImageDraw.Draw(image)
 
-    # All Latin glyphs must share a typographic baseline. Centering each glyph
-    # independently (the old behavior) made x/y and accented vowels float at
-    # different heights in the in-game pinyin line. Use Pillow's baseline
-    # anchor and center only horizontally; reserve enough headroom for tone
-    # marks and enough space below for descenders such as y and g.
+    # Keep a common typographic baseline AND a common left origin. The game
+    # advances the pen by each glyph's measured font advance; centering glyphs
+    # inside their square atlas tiles adds a different hidden left bearing to
+    # every letter (most visibly around pairs such as "g r"). Left-aligning the
+    # ink in every tile makes that measured advance correspond to visible text.
+    # The fixed inset leaves room for antialiasing/negative bearings; baseline
+    # 96 reserves headroom for tone marks and descenders such as y and g.
     bbox = draw.textbbox((0, 0), character, font=font, anchor="ls")
-    width = bbox[2] - bbox[0]
-    x = (GLYPH_SIZE - width) // 2 - bbox[0]
+    left_inset = 12
+    x = left_inset - bbox[0]
     baseline = 96
     draw.text((x, baseline), character, fill=255, font=font, anchor="ls")
     pixels = list(image.getdata())
