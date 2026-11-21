@@ -5,14 +5,23 @@
 | Item | Requirement |
 |---|---|
 | Startup language | English |
-| Hotkey | F5, mandatory |
+| Hotkey | Ñ (current Windows build; see README) |
 | Alternate language | Simplified Chinese |
 | Switch while dialogue is open | Immediate; preserve message position/progress |
-| Pinyin | Optional second line under Hanzi; tones included; OFF by default |
+| Pinyin | Optional second line; tone marks; OFF by default; word-level readings when dictionary match exists |
 | Persistence | Remember language and pinyin preferences |
 | ROM | Must not be modified |
 | Save files | Must not be modified |
 | Target | Majora's Mask: Recompiled 1.2.2 |
+
+## Learning and hover dictionary
+
+- The user can hover a recognized Chinese word in an open dialogue.
+- The tooltip shows the matched Hanzi, contextual tone-marked pinyin, and a concise English meaning.
+- Word segmentation uses longest dictionary match so polyphonic characters can use the reading of the full word.
+- The hover feature can be disabled in mod configuration without disabling language switching.
+- The tooltip disappears when the pointer leaves the word, the dialogue closes, or English is selected.
+- No OCR is used; hitboxes are aligned from the Chinese renderer's character positions.
 
 ## Acceptance tests
 
@@ -23,7 +32,7 @@
 - [ ] F5 works while a dialogue is open.
 - [ ] Switching does not close the dialogue or reset its character/page position.
 - [ ] F5 does not require a menu or restart.
-- [ ] Pinyin is hidden by default.
+- [ ] Pinyin is hidden by default.\n- [ ] Hovering a recognized Chinese word shows Hanzi, contextual pinyin and an English gloss.\n- [ ] The tooltip does not obstruct dialogue progression or controller input.\n- [ ] The hover dictionary can be disabled independently in mod configuration.\n- [ ] Hover hitboxes remain aligned at supported window sizes and aspect ratios.
 - [ ] Enabling pinyin shows correctly toned pinyin below Chinese text.
 - [ ] Language and pinyin settings persist across game restarts.
 - [ ] Existing save files remain unchanged.
