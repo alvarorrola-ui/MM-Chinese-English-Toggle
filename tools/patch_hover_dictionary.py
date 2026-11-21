@@ -23,7 +23,11 @@ typedef struct {
 
 #define MMCHT_MAX_WORD_HITBOXES 64
 #define MMCHT_TOOLTIP_WIDTH 220
-#define MMCHT_TOOLTIP_HEIGHT 54
+#define MMCHT_TOOLTIP_HEIGHT 56
+
+static bool cn_word_hover_enabled(void) {
+    return recomp_get_config_u32("word_dictionary") == 1;
+}
 
 static RecompuiContext sWordHoverContext = RECOMPUI_NULL_CONTEXT;
 static RecompuiResource sWordHoverRoot = RECOMPUI_NULL_RESOURCE;
@@ -94,7 +98,7 @@ static void mmcht_word_hover_callback(RecompuiResource resource,
 static void mmcht_setup_word_hover_ui(void) {
     RecompuiColor transparent = { 0, 0, 0, 0 };
     u32 i;
-    if (sWordHoverUiInitialized) return;
+    if (sWordHoverUiInitialized || !cn_word_hover_enabled()) return;
 
     sWordHoverContext = recompui_create_context();
     if (sWordHoverContext == RECOMPUI_NULL_CONTEXT) return;
@@ -120,7 +124,7 @@ static void mmcht_setup_word_hover_ui(void) {
         recompui_set_background_color(hitbox, &transparent);
         recompui_set_border_color(hitbox, &transparent);
         recompui_set_opacity(hitbox, 0.0f);
-        recompui_set_cursor(hitbox, CURSOR_NONE);
+        recompui_set_cursor(hitbox, CURSOR_POINTER);
         recompui_set_tab_index(hitbox, TAB_INDEX_NONE);
         recompui_set_visibility(hitbox, VISIBILITY_HIDDEN);
         recompui_register_callback(hitbox, mmcht_word_hover_callback,
@@ -142,6 +146,7 @@ static void mmcht_hide_word_context(void) {
 }
 
 static void mmcht_begin_word_frame(u16 textId, s16 pageIndex) {
+    if (!cn_word_hover_enabled()) { mmcht_hide_word_context(); return; }
     if ((textId != sWordHoverTextId) || (pageIndex != sWordHoverPage)) {
         sHoveredWordSlot = -1;
         sWordHoverTextId = textId;
@@ -153,7 +158,8 @@ static void mmcht_begin_word_frame(u16 textId, s16 pageIndex) {
 static void mmcht_add_word_hitbox(s16 x, s16 y, s16 width, s16 height,
                                   const CnWordEntry* entry) {
     CnWordHitbox* box;
-    if ((entry == NULL) || (sWordHitboxCount >= MMCHT_MAX_WORD_HITBOXES)) return;
+    if (!cn_word_hover_enabled() || (entry == NULL) ||
+        (sWordHitboxCount >= MMCHT_MAX_WORD_HITBOXES)) return;
     box = &sWordHitboxes[sWordHitboxCount++];
     box->entry = entry;
     box->x = x;
@@ -164,7 +170,7 @@ static void mmcht_add_word_hitbox(s16 x, s16 y, s16 width, s16 height,
 
 static void mmcht_finish_word_frame(void) {
     u32 i;
-    if (!sWordHoverUiInitialized) return;
+    if (!cn_word_hover_enabled() || !sWordHoverUiInitialized) { mmcht_hide_word_context(); return; }
     if (sHoveredWordSlot >= sWordHitboxCount) sHoveredWordSlot = -1;
 
     recompui_open_context(sWordHoverContext);
@@ -269,23 +275,26 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     }
 
     x = left + 8;
-    cn_draw_tooltip_latin(gfxP, entry->pinyin, x, top + 20, 7, 7, pinyinColor);
+    cn_draw_tooltip_latin(gfxP, entry->pinyin, x, top + 20, 6, 6, pinyinColor);
 
     meaning = entry->meaning;
     while (meaning[meaningLength] != '\0') meaningLength++;
     x = left + 8;
     y = top + 33;
     for (i = 0; i < meaningLength; i++) {
-        if ((i == 38) || (i == 76)) {
+        const char character = meaning[i];
+        const u8* glyph;
+        if (i == 34) {
             x = left + 8;
-            y += 8;
+            y = top + 42;
         }
-        if (y > top + panelHeight - 6) break;
-        {
-            char character[2] = { meaning[i], '\0' };
-            cn_draw_tooltip_latin(gfxP, character, x, y, 6, 6, meaningColor);
+        if (y > top + panelHeight - 8) break;
+        if (character != ' ') {
+            glyph = cn_find_pinyin_glyph(character);
+            if (glyph != NULL) cn_draw_glyph_subpixel(gfxP, glyph, x, y, 6, 0,
+                                                       meaningColor, 255, true);
         }
-        x += 6;
+        x += (character == ' ') ? 4 : 6;
     }
 }
 '''
@@ -420,6 +429,22 @@ def main() -> None:
 
     source = source.rstrip() + "\n\n/* MMCHT_HOVER_DICTIONARY_PATCH */\n"
     source_path.write_text(source, encoding="utf-8", newline="\n")
+
+    manifest_path = mod_dir / "mod.toml"
+    manifest = manifest_path.read_text(encoding="utf-8")
+    if 'id = "word_dictionary"' not in manifest:
+        manifest += r'''
+
+[[manifest.config_options]]
+id = "word_dictionary"
+name = "Word Dictionary"
+description = "Show a word meaning when hovering Chinese dialogue. Off by default if you prefer an uncluttered screen."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "On"
+'''
+        manifest_path.write_text(manifest, encoding="utf-8", newline="\n")
+
     print("Patched word-level pinyin and mouse-hover glossary into Chinese dialogue rendering.")
 
 
