@@ -23,6 +23,22 @@ The build uses a companion native Windows library to detect the Ñ key and an of
 
 **Important:** compilation and packaging have passed, but the mod has not yet been validated inside a live Majora's Mask: Recompiled 1.2.2 game session. In particular, the live dialogue-switch behavior, all message paths, and pinyin layout still need in-game testing.
 
+## Language-learning features
+
+The current implementation adds a contextual word glossary to Chinese dialogue:
+
+- Hover over a recognized Chinese word with the mouse to show a small in-game tooltip.
+- The tooltip shows the Hanzi, word-level tone-marked pinyin, and a concise English gloss.
+- The dictionary is filtered to vocabulary that occurs in the game's Chinese translation files, rather than bundling the entire CC-CEDICT database.
+- A separate `Word Dictionary` mod setting controls the hover feature and is enabled by default.
+- Pinyin display remains independently configurable.
+
+The word glossary is generated from CC-CEDICT (MDBG, CC BY-SA 4.0). Its source and data license are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+**Limitations of this first iteration:** meanings are in English; words absent from the dictionary do not get a tooltip; at most 64 word hitboxes are active per message page. Contextual phrase matching improves polyphonic readings, while the existing character-level pinyin lookup remains the fallback for unmatched text.
+
+The hover UI uses Recompiled's mouse-hover event API. Compilation alone does not prove that its pointer coordinates align correctly with the game's 320×240 dialogue renderer on every window size or aspect ratio; this still requires live testing.
+
 ## Target compatibility
 
 - Game: Majora's Mask: Recompiled
