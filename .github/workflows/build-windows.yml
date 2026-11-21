@@ -26,6 +26,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pypinyin pillow
+      - name: Test contextual vocabulary generator
+        shell: pwsh
+        run: python -m unittest discover -s tools/tests -v
       - name: Download RecompModTool
         shell: pwsh
         run: Invoke-WebRequest -Uri "https://github.com/N64Recomp/N64Recomp/releases/download/mod-tool-release/RecompModTool.exe" -OutFile "$env:RUNNER_TEMP\RecompModTool.exe"
