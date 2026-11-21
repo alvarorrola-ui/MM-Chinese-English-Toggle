@@ -15,6 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Check out source and pinned submodules
         uses: actions/checkout@v4
@@ -24,7 +25,22 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
       - name: Install LLVM 18.1.8
         shell: pwsh
-        run: choco install llvm --version=18.1.8 --allow-downgrade -y --no-progress
+        run: |
+          $Clang = Join-Path $env:ProgramFiles "LLVM\bin\clang.exe"
+          $VersionText = ""
+          if (Test-Path $Clang) {
+            $VersionText = (& $Clang --version | Out-String)
+          }
+          if ($VersionText -notmatch "18\.1\.8") {
+            $Installer = Join-Path $env:RUNNER_TEMP "LLVM-18.1.8-win64.exe"
+            Invoke-WebRequest -Uri "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe" -OutFile $Installer
+            if (-not (Test-Path $Installer)) { throw "LLVM installer download failed." }
+            $Process = Start-Process -FilePath $Installer -ArgumentList "/S" -Wait -PassThru
+            if ($Process.ExitCode -ne 0) { throw "LLVM installer exited with code $($Process.ExitCode)." }
+          }
+          $VersionText = (& $Clang --version | Out-String)
+          Write-Host $VersionText
+          if ($VersionText -notmatch "18\.1\.8") { throw "Expected LLVM 18.1.8, got: $VersionText" }
       - name: Install pinyin dependency
         shell: pwsh
         run: |
