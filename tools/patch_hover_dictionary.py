@@ -347,7 +347,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const s16 maxContentWidth = 120;
     const s16 meaningGlyphSize = 10;
     const s16 meaningSpace = 4;
-    const s16 pinyinGlyphSize = 9;
+    const s16 pinyinGlyphSize = 11;
     const s16 pinyinSpace = 5;
     s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
     s16 contentWidth, panelWidth, panelHeight;
@@ -379,7 +379,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
                                                meaningGlyphSize, meaningSpace, &meaningWidth);
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 9 + 3 + (meaningLines * 12) + 5;
+    panelHeight = 4 + 12 + 2 + 11 + 3 + (meaningLines * 12) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Anchor to the hovered word and clamp to the actual logical render size.
