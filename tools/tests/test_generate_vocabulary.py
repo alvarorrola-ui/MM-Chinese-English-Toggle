@@ -54,7 +54,8 @@ class VocabularyGeneratorTests(unittest.TestCase):
 
     def test_gloss_uses_only_renderable_ascii_letters(self) -> None:
         gloss = vocabulary.clean_gloss("/to test (something)/experiment; trial/")
-        self.assertRegex(gloss, r"^[a-z ]+$|^([a-z ]+ or [a-z ]+)$")
+        self.assertEqual(gloss, "to test")
+        self.assertTrue(gloss.isascii())
 
 
 if __name__ == "__main__":
