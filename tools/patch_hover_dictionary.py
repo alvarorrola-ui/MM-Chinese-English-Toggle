@@ -37,10 +37,6 @@ static u16 sWordHoverTextId = 0xFFFF;
 static s16 sWordHoverPage = -1;
 static bool sWordHoverUiInitialized;
 static bool sWordHoverUiShown;
-static float sWordViewportLeft;
-static float sWordViewportTop;
-static float sWordViewportWidth = 320.0f;
-static float sWordViewportHeight = 240.0f;
 static float sWordScreenWidth = 320.0f;
 static float sWordScreenHeight = 240.0f;
 static float sWordClientWidth = 320.0f;
@@ -154,23 +150,16 @@ static void mmcht_hide_word_context(void) {
 static void mmcht_begin_word_frame(PlayState* play, u16 textId, s16 pageIndex) {
     if (!cn_word_hover_enabled()) { mmcht_hide_word_context(); return; }
 
-    /* RecompUI spans the full client window. The game picture can be a centered
-       letterboxed rectangle, so query the real window size and fit the game's
-       render surface into that client area before creating percentage hitboxes. */
-    if (play != NULL) {
-        sWordViewportLeft = (float)play->view.viewport.leftX;
-        sWordViewportTop = (float)play->view.viewport.topY;
-        sWordViewportWidth = (float)(play->view.viewport.rightX - play->view.viewport.leftX);
-        sWordViewportHeight = (float)(play->view.viewport.bottomY - play->view.viewport.topY);
-        sWordScreenWidth = (gScreenWidth > 0) ? (float)gScreenWidth : 320.0f;
-        sWordScreenHeight = (gScreenHeight > 0) ? (float)gScreenHeight : 240.0f;
-        sWordClientWidth = (float)mmcht_get_client_width();
-        sWordClientHeight = (float)mmcht_get_client_height();
-        if (sWordClientWidth < 1.0f) sWordClientWidth = sWordScreenWidth;
-        if (sWordClientHeight < 1.0f) sWordClientHeight = sWordScreenHeight;
-        if (sWordViewportWidth <= 0.0f) sWordViewportWidth = sWordScreenWidth;
-        if (sWordViewportHeight <= 0.0f) sWordViewportHeight = sWordScreenHeight;
-    }
+    /* Dialogue text is drawn in the game's 2D screen coordinate space, not the
+       3D camera viewport. Map that logical screen into RecompUI's full client
+       canvas using the same centered, aspect-preserving scale as the game image. */
+    (void)play;
+    sWordScreenWidth = (gScreenWidth > 0) ? (float)gScreenWidth : 320.0f;
+    sWordScreenHeight = (gScreenHeight > 0) ? (float)gScreenHeight : 240.0f;
+    sWordClientWidth = (float)mmcht_get_client_width();
+    sWordClientHeight = (float)mmcht_get_client_height();
+    if (sWordClientWidth < 1.0f) sWordClientWidth = sWordScreenWidth;
+    if (sWordClientHeight < 1.0f) sWordClientHeight = sWordScreenHeight;
     if ((textId != sWordHoverTextId) || (pageIndex != sWordHoverPage)) {
         sHoveredWordSlot = -1;
         sWordHoverTextId = textId;
@@ -202,12 +191,12 @@ static void mmcht_finish_word_frame(void) {
         RecompuiResource hitbox = sWordHoverButtons[i];
         if (i < sWordHitboxCount) {
             const CnWordHitbox* box = &sWordHitboxes[i];
-            float gameLeft = sWordViewportLeft +
-                             ((float)box->x * sWordViewportWidth / CN_SCREEN_WIDTH);
-            float gameTop = sWordViewportTop +
-                            ((float)box->y * sWordViewportHeight / 240.0f);
-            float gameWidth = (float)box->width * sWordViewportWidth / CN_SCREEN_WIDTH;
-            float gameHeight = (float)box->height * sWordViewportHeight / 240.0f;
+            /* box coordinates already belong to the 2D dialogue renderer. Do
+               not add the 3D camera viewport origin or scale by its dimensions. */
+            float gameLeft = (float)box->x;
+            float gameTop = (float)box->y;
+            float gameWidth = (float)box->width;
+            float gameHeight = (float)box->height;
             float scaleX = sWordClientWidth / sWordScreenWidth;
             float scaleY = sWordClientHeight / sWordScreenHeight;
             float scale = (scaleX < scaleY) ? scaleX : scaleY;
@@ -240,12 +229,23 @@ static void mmcht_finish_word_frame(void) {
     }
 }
 
+/*
+ * Glyphs are stored in square atlas tiles, but their visible ink is centered
+ * inside each tile. Advance by the measured font width (plus a small tracking
+ * allowance), not by the whole tile: this keeps letters within a word together
+ * while retaining a little breathing room. Transparent tile overlap is safe.
+ */
 static s16 cn_pinyin_glyph_advance(char character, s16 glyphSize) {
     u32 i;
     for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
         if (gCnPinyinGlyphCharacters[i] == character) {
-            s16 glyphAdvance = (s16)((gCnPinyinGlyphWidthPercent[i] * glyphSize + 99) / 100);
-            return (glyphAdvance < 2) ? 2 : (glyphAdvance + 1);
+            s16 advance =
+                (s16)((gCnPinyinGlyphWidthPercent[i] * glyphSize + 99) / 100);
+            /* Font advance already includes the glyph's natural side bearing.
+               Do not add artificial per-letter tracking here. */
+            if (advance < 3) advance = 3;
+            if (advance > glyphSize) advance = glyphSize;
+            return advance;
         }
     }
     return glyphSize;
@@ -358,8 +358,8 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const s16 maxContentWidth = 120;
     const s16 meaningGlyphSize = 10;
     const s16 meaningSpace = 4;
-    const s16 pinyinGlyphSize = 9;
-    const s16 pinyinSpace = 5;
+    const s16 pinyinGlyphSize = 12;
+    const s16 pinyinSpace = 9;
     s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
     s16 contentWidth, panelWidth, panelHeight;
     s16 left, top, x, y;
@@ -390,7 +390,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
                                                meaningGlyphSize, meaningSpace, &meaningWidth);
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 9 + 3 + (meaningLines * 12) + 5;
+    panelHeight = 4 + 12 + 2 + 12 + 3 + (meaningLines * 12) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Anchor to the hovered word and clamp to the actual logical render size.
@@ -441,12 +441,12 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     y = top + 4;
     for (i = 0; i < entry->length; i++) {
         const u8* glyph = cn_find_glyph(entry->hanzi[i]);
-        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, x, y, 11, hanziColor, 255, false);
+        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, x, y, 12, hanziColor, 255, false);
         x += 12;
     }
 
     cn_draw_tooltip_latin(gfxP, entry->pinyin, left + padding + 1,
-                          top + 19, pinyinGlyphSize, pinyinSpace, pinyinColor);
+                          top + 18, pinyinGlyphSize, pinyinSpace, pinyinColor);
 
     cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
                             top + 33, contentWidth, meaningSpace,
