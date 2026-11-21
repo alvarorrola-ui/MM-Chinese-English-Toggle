@@ -22,8 +22,7 @@ typedef struct {
 } CnWordHitbox;
 
 #define MMCHT_MAX_WORD_HITBOXES 64
-#define MMCHT_TOOLTIP_WIDTH 220
-#define MMCHT_TOOLTIP_HEIGHT 56
+#define MMCHT_TOOLTIP_MAX_WIDTH 150
 
 static bool cn_word_hover_enabled(void) {
     return recomp_get_config_u32("word_dictionary") == 1;
@@ -204,19 +203,20 @@ static void mmcht_finish_word_frame(void) {
 }
 
 static s16 cn_draw_tooltip_latin(Gfx** gfxP, const char* text, s16 x, s16 y,
-                                 s16 glyphSize, s16 advance, Color_RGB8 color) {
+                                 s16 glyphSize, s16 advance, s16 spaceAdvance,
+                                 Color_RGB8 color) {
     s16 startX = x;
     if (text == NULL) return x;
     while (*text != '\0') {
         const u8* glyph;
         if (*text == ' ') {
-            x += (advance > 4) ? (advance - 2) : advance;
+            x += spaceAdvance;
             text++;
             continue;
         }
         glyph = cn_find_pinyin_glyph(*text);
         if (glyph != NULL) {
-            cn_draw_glyph_subpixel(gfxP, glyph, x, y, glyphSize, 0, color, 255, true);
+            cn_draw_glyph_subpixel(gfxP, glyph, x, y, glyphSize, 0, color, 255, false);
         }
         x += advance;
         text++;
@@ -224,30 +224,118 @@ static s16 cn_draw_tooltip_latin(Gfx** gfxP, const char* text, s16 x, s16 y,
     return (x > startX) ? x : startX;
 }
 
+static s16 cn_tooltip_wrapped_metrics(const char* text, s16 maxWidth,
+                                      s16 advance, s16 spaceAdvance,
+                                      s16* widestLine) {
+    s16 lines = 1;
+    s16 currentWidth = 0;
+    s16 widest = 0;
+    const char* cursor = text;
+
+    while ((cursor != NULL) && (*cursor != '\0')) {
+        s16 wordLength = 0;
+        s16 wordWidth;
+        while ((cursor[wordLength] != '\0') && (cursor[wordLength] != ' ')) wordLength++;
+        if (wordLength == 0) { cursor++; continue; }
+        wordWidth = wordLength * advance;
+        if ((currentWidth > 0) &&
+            (currentWidth + spaceAdvance + wordWidth > maxWidth)) {
+            if (currentWidth > widest) widest = currentWidth;
+            lines++;
+            currentWidth = wordWidth;
+        } else {
+            if (currentWidth > 0) currentWidth += spaceAdvance;
+            currentWidth += wordWidth;
+        }
+        cursor += wordLength;
+        if (*cursor == ' ') cursor++;
+    }
+    if (currentWidth > widest) widest = currentWidth;
+    if (widestLine != NULL) *widestLine = widest;
+    return lines;
+}
+
+static void cn_draw_tooltip_wrapped(Gfx** gfxP, const char* text, s16 x, s16 y,
+                                    s16 maxWidth, s16 advance, s16 spaceAdvance,
+                                    s16 lineHeight, s16 glyphSize, Color_RGB8 color) {
+    const char* cursor = text;
+    s16 currentX = 0;
+    s16 currentY = 0;
+
+    while ((cursor != NULL) && (*cursor != '\0')) {
+        s16 wordLength = 0;
+        s16 i;
+        s16 wordWidth;
+        while ((cursor[wordLength] != '\0') && (cursor[wordLength] != ' ')) wordLength++;
+        if (wordLength == 0) { cursor++; continue; }
+        wordWidth = wordLength * advance;
+        if ((currentX > 0) && (currentX + spaceAdvance + wordWidth > maxWidth)) {
+            currentX = 0;
+            currentY += lineHeight;
+        } else if (currentX > 0) {
+            currentX += spaceAdvance;
+        }
+        for (i = 0; i < wordLength; i++) {
+            const u8* glyph = cn_find_pinyin_glyph(cursor[i]);
+            if (glyph != NULL) {
+                cn_draw_glyph_subpixel(gfxP, glyph, x + currentX, y + currentY,
+                                       glyphSize, 0, color, 255, false);
+            }
+            currentX += advance;
+        }
+        cursor += wordLength;
+        if (*cursor == ' ') cursor++;
+    }
+}
+
 static void cn_draw_word_tooltip(Gfx** gfxP) {
-    static const Color_RGB8 hanziColor = { 255, 245, 217 };
-    static const Color_RGB8 pinyinColor = { 176, 213, 255 };
-    static const Color_RGB8 meaningColor = { 255, 255, 255 };
+    static const Color_RGB8 hanziColor = { 250, 243, 222 };
+    static const Color_RGB8 pinyinColor = { 151, 197, 231 };
+    static const Color_RGB8 meaningColor = { 226, 231, 236 };
     const CnWordHitbox* box;
     const CnWordEntry* entry;
-    const s16 panelWidth = MMCHT_TOOLTIP_WIDTH;
-    const s16 panelHeight = MMCHT_TOOLTIP_HEIGHT;
+    const s16 padding = 7;
+    const s16 maxContentWidth = 132;
+    const s16 meaningAdvance = 4;
+    const s16 meaningSpace = 3;
+    const s16 pinyinAdvance = 5;
+    const s16 pinyinSpace = 3;
+    s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
+    s16 contentWidth, panelWidth, panelHeight;
     s16 left, top, x, y;
     s16 i;
-    const char* meaning;
-    u16 meaningLength = 0;
 
     if ((sHoveredWordSlot < 0) || (sHoveredWordSlot >= sWordHitboxCount)) return;
     box = &sWordHitboxes[sHoveredWordSlot];
     entry = box->entry;
     if (entry == NULL) return;
 
-    left = box->x;
-    if (left + panelWidth > 316) left = 316 - panelWidth;
-    if (left < 4) left = 4;
-    top = box->y - panelHeight - 4;
-    if (top < 4) top = box->y + box->height + 4;
+    hanziWidth = entry->length * 12;
+    pinyinWidth = 0;
+    for (i = 0; entry->pinyin[i] != '\0'; i++) {
+        pinyinWidth += (entry->pinyin[i] == ' ') ? pinyinSpace : pinyinAdvance;
+    }
+    meaningLines = cn_tooltip_wrapped_metrics(entry->meaning, maxContentWidth,
+                                               meaningAdvance, meaningSpace, &meaningWidth);
+    contentWidth = hanziWidth;
+    if (pinyinWidth > contentWidth) contentWidth = pinyinWidth;
+    if (meaningWidth > contentWidth) contentWidth = meaningWidth;
+    if (contentWidth > maxContentWidth) contentWidth = maxContentWidth;
+    if (contentWidth < 62) contentWidth = 62;
+
+    panelWidth = contentWidth + padding * 2;
+    panelHeight = 4 + 12 + 2 + 6 + 2 + (meaningLines * 6) + 5;
+    if (panelWidth > 150) panelWidth = 150;
+
+    /* Center the card on the hovered word, then keep it inside the 320x240 UI. */
+    left = box->x + (box->width / 2) - (panelWidth / 2);
+    if (left < 3) left = 3;
+    if (left + panelWidth > 317) left = 317 - panelWidth;
+
+    top = box->y - panelHeight - 7;
+    if (top < 4) top = box->y + box->height + 5;
     if (top + panelHeight > 236) top = 236 - panelHeight;
+    if (top < 3) top = 3;
 
     {
         Gfx* gfx = *gfxP;
@@ -255,10 +343,19 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);
         gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
         gDPSetCombineMode(gfx++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
-        gDPSetPrimColor(gfx++, 0, 0, 162, 128, 70, 245);
+
+        /* Soft shadow, fine warm outline, charcoal fill, and a muted teal accent. */
+        gDPSetPrimColor(gfx++, 0, 0, 0, 0, 0, 105);
+        gDPFillRectangle(gfx++, left + 2, top + 2,
+                         left + panelWidth + 2, top + panelHeight + 2);
+        gDPSetPrimColor(gfx++, 0, 0, 125, 102, 66, 235);
         gDPFillRectangle(gfx++, left, top, left + panelWidth, top + panelHeight);
-        gDPSetPrimColor(gfx++, 0, 0, 9, 12, 18, 245);
-        gDPFillRectangle(gfx++, left + 2, top + 2, left + panelWidth - 2, top + panelHeight - 2);
+        gDPSetPrimColor(gfx++, 0, 0, 15, 19, 25, 238);
+        gDPFillRectangle(gfx++, left + 1, top + 1,
+                         left + panelWidth - 1, top + panelHeight - 1);
+        gDPSetPrimColor(gfx++, 0, 0, 91, 151, 164, 245);
+        gDPFillRectangle(gfx++, left + 1, top + 1, left + 3, top + panelHeight - 1);
+
         gDPPipeSync(gfx++);
         gDPSetCombineLERP(gfx++, 0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0,
                           0, 0, 0, PRIMITIVE, TEXEL0, 0, PRIMITIVE, 0);
@@ -266,37 +363,22 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
         *gfxP = gfx;
     }
 
-    x = left + 8;
-    y = top + 5;
+    x = left + padding + 1;
+    y = top + 4;
     for (i = 0; i < entry->length; i++) {
         const u8* glyph = cn_find_glyph(entry->hanzi[i]);
-        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, x, y, 11, hanziColor, 255, true);
+        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, x, y, 11, hanziColor, 255, false);
         x += 12;
     }
 
-    x = left + 8;
-    cn_draw_tooltip_latin(gfxP, entry->pinyin, x, top + 20, 6, 6, pinyinColor);
+    cn_draw_tooltip_latin(gfxP, entry->pinyin, left + padding + 1,
+                          top + 18, 6, pinyinAdvance, pinyinSpace, pinyinColor);
 
-    meaning = entry->meaning;
-    while (meaning[meaningLength] != '\0') meaningLength++;
-    x = left + 8;
-    y = top + 33;
-    for (i = 0; i < meaningLength; i++) {
-        const char character = meaning[i];
-        const u8* glyph;
-        if (i == 34) {
-            x = left + 8;
-            y = top + 42;
-        }
-        if (y > top + panelHeight - 8) break;
-        if (character != ' ') {
-            glyph = cn_find_pinyin_glyph(character);
-            if (glyph != NULL) cn_draw_glyph_subpixel(gfxP, glyph, x, y, 6, 0,
-                                                       meaningColor, 255, true);
-        }
-        x += (character == ' ') ? 4 : 6;
-    }
+    cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
+                            top + 28, contentWidth, meaningAdvance, meaningSpace,
+                            6, 5, meaningColor);
 }
+
 '''
 
 
