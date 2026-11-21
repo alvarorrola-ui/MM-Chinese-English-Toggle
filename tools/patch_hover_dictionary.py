@@ -348,7 +348,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     if (contentWidth < 62) contentWidth = 62;
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 8 + 3 + (meaningLines * 10) + 5;
+    panelHeight = 4 + 12 + 2 + 8 + 3 + (meaningLines * 11) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Center the card on the hovered word, then keep it inside the 320x240 UI. */
@@ -407,7 +407,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
 
     cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
                             top + 32, contentWidth, meaningAdvance, meaningSpace,
-                            10, 8, meaningColor);
+                            11, 8, meaningColor);
 }
 
 '''
