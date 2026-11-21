@@ -72,22 +72,22 @@ def encode_pinyin(pinyin: str) -> str:
     return "".join(encoded).rstrip()
 
 
-def clean_gloss(raw: str, limit: int = 92) -> str:
-    # Keep the first two concise senses; runtime bitmap atlas is lowercase ASCII.
+def clean_gloss(raw: str, limit: int = 68) -> str:
+    # The dialogue atlas only guarantees a-z; keep the tooltip fully renderable.
     senses = raw.split("/")
     cleaned: list[str] = []
     for sense in senses:
-        sense = re.sub(r"\[[^\]]*\]", " ", sense)
-        sense = re.sub(r"\([^)]*\)", " ", sense)
-        sense = re.sub(r"[^A-Za-z0-9 ]", " ", sense).lower()
+        sense = re.sub(r"\\[[^\\]]*\\]", " ", sense)
+        sense = re.sub(r"\\([^)]*\\)", " ", sense)
+        sense = re.sub(r"[^A-Za-z ]", " ", sense).lower()
         sense = " ".join(sense.split())
         if sense and sense not in cleaned:
             cleaned.append(sense)
         if len(cleaned) == 2:
             break
-    result = "; ".join(cleaned) or "meaning unavailable"
+    result = " or ".join(cleaned) or "meaning unavailable"
     if len(result) > limit:
-        result = result[: limit - 3].rsplit(" ", 1)[0] + "..."
+        result = result[:limit].rsplit(" ", 1)[0]
     return result
 
 
