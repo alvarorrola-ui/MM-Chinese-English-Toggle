@@ -347,7 +347,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const s16 maxContentWidth = 120;
     const s16 meaningGlyphSize = 10;
     const s16 meaningSpace = 4;
-    const s16 pinyinGlyphSize = 11;
+    const s16 pinyinGlyphSize = 12;
     const s16 pinyinSpace = 5;
     s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
     s16 contentWidth, panelWidth, panelHeight;
@@ -379,7 +379,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
                                                meaningGlyphSize, meaningSpace, &meaningWidth);
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 11 + 3 + (meaningLines * 12) + 5;
+    panelHeight = 4 + 12 + 2 + 12 + 3 + (meaningLines * 12) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Anchor to the hovered word and clamp to the actual logical render size.
@@ -430,12 +430,12 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     y = top + 4;
     for (i = 0; i < entry->length; i++) {
         const u8* glyph = cn_find_glyph(entry->hanzi[i]);
-        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, x, y, 11, hanziColor, 255, false);
+        if (glyph != NULL) cn_draw_glyph(gfxP, glyph, x, y, 12, hanziColor, 255, false);
         x += 12;
     }
 
     cn_draw_tooltip_latin(gfxP, entry->pinyin, left + padding + 1,
-                          top + 19, pinyinGlyphSize, pinyinSpace, pinyinColor);
+                          top + 18, pinyinGlyphSize, pinyinSpace, pinyinColor);
 
     cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
                             top + 33, contentWidth, meaningSpace,
