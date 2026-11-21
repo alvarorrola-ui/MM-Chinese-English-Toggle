@@ -230,13 +230,23 @@ static void mmcht_finish_word_frame(void) {
 }
 
 /*
- * Every pinyin glyph is rasterized into a full square texture tile and centered
- * horizontally inside it. Therefore the pen must advance by the full tile size;
- * using the glyph's natural font width while drawing a full-size tile makes
- * neighboring glyph quads overlap and produces visibly uneven spacing.
+ * Glyphs are stored in square atlas tiles, but their visible ink is centered
+ * inside each tile. Advance by the measured font width (plus a small tracking
+ * allowance), not by the whole tile: this keeps letters within a word together
+ * while retaining a little breathing room. Transparent tile overlap is safe.
  */
 static s16 cn_pinyin_glyph_advance(char character, s16 glyphSize) {
-    (void)character;
+    u32 i;
+    for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
+        if (gCnPinyinGlyphCharacters[i] == character) {
+            s16 naturalAdvance =
+                (s16)((gCnPinyinGlyphWidthPercent[i] * glyphSize + 99) / 100);
+            s16 advance = naturalAdvance + 1;
+            if (advance < 5) advance = 5;
+            if (advance > glyphSize) advance = glyphSize;
+            return advance;
+        }
+    }
     return glyphSize;
 }
 
@@ -348,7 +358,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const s16 meaningGlyphSize = 10;
     const s16 meaningSpace = 4;
     const s16 pinyinGlyphSize = 12;
-    const s16 pinyinSpace = 5;
+    const s16 pinyinSpace = 9;
     s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
     s16 contentWidth, panelWidth, panelHeight;
     s16 left, top, x, y;
