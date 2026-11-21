@@ -43,6 +43,8 @@ static float sWordViewportWidth = 320.0f;
 static float sWordViewportHeight = 240.0f;
 static float sWordScreenWidth = 320.0f;
 static float sWordScreenHeight = 240.0f;
+static float sWordClientWidth = 320.0f;
+static float sWordClientHeight = 240.0f;
 
 static const CnWordEntry* cn_find_word(const u16* text, u16 remaining, u8* matchedLength) {
     s32 low = 0;
@@ -152,8 +154,9 @@ static void mmcht_hide_word_context(void) {
 static void mmcht_begin_word_frame(PlayState* play, u16 textId, s16 pageIndex) {
     if (!cn_word_hover_enabled()) { mmcht_hide_word_context(); return; }
 
-    /* Text coordinates are emitted in the game's active logical viewport.
-       RecompUI percentages are relative to the whole client canvas. */
+    /* RecompUI spans the full client window. The game picture can be a centered
+       letterboxed rectangle, so query the real window size and fit the game's
+       render surface into that client area before creating percentage hitboxes. */
     if (play != NULL) {
         sWordViewportLeft = (float)play->view.viewport.leftX;
         sWordViewportTop = (float)play->view.viewport.topY;
@@ -161,6 +164,10 @@ static void mmcht_begin_word_frame(PlayState* play, u16 textId, s16 pageIndex) {
         sWordViewportHeight = (float)(play->view.viewport.bottomY - play->view.viewport.topY);
         sWordScreenWidth = (gScreenWidth > 0) ? (float)gScreenWidth : 320.0f;
         sWordScreenHeight = (gScreenHeight > 0) ? (float)gScreenHeight : 240.0f;
+        sWordClientWidth = (float)mmcht_get_client_width();
+        sWordClientHeight = (float)mmcht_get_client_height();
+        if (sWordClientWidth < 1.0f) sWordClientWidth = sWordScreenWidth;
+        if (sWordClientHeight < 1.0f) sWordClientHeight = sWordScreenHeight;
         if (sWordViewportWidth <= 0.0f) sWordViewportWidth = sWordScreenWidth;
         if (sWordViewportHeight <= 0.0f) sWordViewportHeight = sWordScreenHeight;
     }
@@ -201,10 +208,17 @@ static void mmcht_finish_word_frame(void) {
                             ((float)box->y * sWordViewportHeight / 240.0f);
             float gameWidth = (float)box->width * sWordViewportWidth / CN_SCREEN_WIDTH;
             float gameHeight = (float)box->height * sWordViewportHeight / 240.0f;
-            float left = (gameLeft * 100.0f) / sWordScreenWidth;
-            float top = (gameTop * 100.0f) / sWordScreenHeight;
-            float width = (gameWidth * 100.0f) / sWordScreenWidth;
-            float height = (gameHeight * 100.0f) / sWordScreenHeight;
+            float scaleX = sWordClientWidth / sWordScreenWidth;
+            float scaleY = sWordClientHeight / sWordScreenHeight;
+            float scale = (scaleX < scaleY) ? scaleX : scaleY;
+            float displayedWidth = sWordScreenWidth * scale;
+            float displayedHeight = sWordScreenHeight * scale;
+            float letterboxLeft = (sWordClientWidth - displayedWidth) * 0.5f;
+            float letterboxTop = (sWordClientHeight - displayedHeight) * 0.5f;
+            float left = ((letterboxLeft + gameLeft * scale) * 100.0f) / sWordClientWidth;
+            float top = ((letterboxTop + gameTop * scale) * 100.0f) / sWordClientHeight;
+            float width = (gameWidth * scale * 100.0f) / sWordClientWidth;
+            float height = (gameHeight * scale * 100.0f) / sWordClientHeight;
             recompui_set_left(hitbox, left, UNIT_PERCENT);
             recompui_set_top(hitbox, top, UNIT_PERCENT);
             recompui_set_width(hitbox, width, UNIT_PERCENT);
@@ -226,8 +240,28 @@ static void mmcht_finish_word_frame(void) {
     }
 }
 
+static s16 cn_pinyin_glyph_advance(char character, s16 glyphSize) {
+    u32 i;
+    for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
+        if (gCnPinyinGlyphCharacters[i] == character) {
+            s16 glyphAdvance = (s16)((gCnPinyinGlyphWidthPercent[i] * glyphSize + 99) / 100);
+            return (glyphAdvance < 2) ? 2 : (glyphAdvance + 1);
+        }
+    }
+    return glyphSize;
+}
+
+static s16 cn_tooltip_word_width(const char* text, s16 glyphSize) {
+    s16 width = 0;
+    while ((text != NULL) && (*text != '\0') && (*text != ' ')) {
+        width += cn_pinyin_glyph_advance(*text, glyphSize);
+        text++;
+    }
+    return width;
+}
+
 static s16 cn_draw_tooltip_latin(Gfx** gfxP, const char* text, s16 x, s16 y,
-                                 s16 glyphSize, s16 advance, s16 spaceAdvance,
+                                 s16 glyphSize, s16 spaceAdvance,
                                  Color_RGB8 color) {
     s16 startX = x;
     if (text == NULL) return x;
@@ -242,14 +276,14 @@ static s16 cn_draw_tooltip_latin(Gfx** gfxP, const char* text, s16 x, s16 y,
         if (glyph != NULL) {
             cn_draw_glyph_subpixel(gfxP, glyph, x, y, glyphSize, 0, color, 255, false);
         }
-        x += advance;
+        x += cn_pinyin_glyph_advance(*text, glyphSize);
         text++;
     }
     return (x > startX) ? x : startX;
 }
 
 static s16 cn_tooltip_wrapped_metrics(const char* text, s16 maxWidth,
-                                      s16 advance, s16 spaceAdvance,
+                                      s16 glyphSize, s16 spaceAdvance,
                                       s16* widestLine) {
     s16 lines = 1;
     s16 currentWidth = 0;
@@ -261,7 +295,7 @@ static s16 cn_tooltip_wrapped_metrics(const char* text, s16 maxWidth,
         s16 wordWidth;
         while ((cursor[wordLength] != '\0') && (cursor[wordLength] != ' ')) wordLength++;
         if (wordLength == 0) { cursor++; continue; }
-        wordWidth = wordLength * advance;
+        wordWidth = cn_tooltip_word_width(cursor, glyphSize);
         if ((currentWidth > 0) &&
             (currentWidth + spaceAdvance + wordWidth > maxWidth)) {
             if (currentWidth > widest) widest = currentWidth;
@@ -280,7 +314,7 @@ static s16 cn_tooltip_wrapped_metrics(const char* text, s16 maxWidth,
 }
 
 static void cn_draw_tooltip_wrapped(Gfx** gfxP, const char* text, s16 x, s16 y,
-                                    s16 maxWidth, s16 advance, s16 spaceAdvance,
+                                    s16 maxWidth, s16 spaceAdvance,
                                     s16 lineHeight, s16 glyphSize, Color_RGB8 color) {
     const char* cursor = text;
     s16 currentX = 0;
@@ -292,7 +326,7 @@ static void cn_draw_tooltip_wrapped(Gfx** gfxP, const char* text, s16 x, s16 y,
         s16 wordWidth;
         while ((cursor[wordLength] != '\0') && (cursor[wordLength] != ' ')) wordLength++;
         if (wordLength == 0) { cursor++; continue; }
-        wordWidth = wordLength * advance;
+        wordWidth = cn_tooltip_word_width(cursor, glyphSize);
         if ((currentX > 0) && (currentX + spaceAdvance + wordWidth > maxWidth)) {
             currentX = 0;
             currentY += lineHeight;
@@ -305,7 +339,7 @@ static void cn_draw_tooltip_wrapped(Gfx** gfxP, const char* text, s16 x, s16 y,
                 cn_draw_glyph_subpixel(gfxP, glyph, x + currentX, y + currentY,
                                        glyphSize, 0, color, 255, false);
             }
-            currentX += advance;
+            currentX += cn_pinyin_glyph_advance(cursor[i], glyphSize);
         }
         cursor += wordLength;
         if (*cursor == ' ') cursor++;
@@ -320,10 +354,10 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const CnWordEntry* entry;
     const s16 padding = 7;
     const s16 maxContentWidth = 120;
-    const s16 meaningAdvance = 7;
+    const s16 meaningGlyphSize = 10;
     const s16 meaningSpace = 4;
-    const s16 pinyinAdvance = 7;
-    const s16 pinyinSpace = 4;
+    const s16 pinyinGlyphSize = 9;
+    const s16 pinyinSpace = 5;
     s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
     s16 contentWidth, panelWidth, panelHeight;
     s16 left, top, x, y;
@@ -337,10 +371,11 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     hanziWidth = entry->length * 12;
     pinyinWidth = 0;
     for (i = 0; entry->pinyin[i] != '\0'; i++) {
-        pinyinWidth += (entry->pinyin[i] == ' ') ? pinyinSpace : pinyinAdvance;
+        pinyinWidth += (entry->pinyin[i] == ' ') ?
+                           pinyinSpace : cn_pinyin_glyph_advance(entry->pinyin[i], pinyinGlyphSize);
     }
     meaningLines = cn_tooltip_wrapped_metrics(entry->meaning, maxContentWidth,
-                                               meaningAdvance, meaningSpace, &meaningWidth);
+                                               meaningGlyphSize, meaningSpace, &meaningWidth);
     contentWidth = hanziWidth;
     if (pinyinWidth > contentWidth) contentWidth = pinyinWidth;
     if (meaningWidth > contentWidth) contentWidth = meaningWidth;
@@ -350,10 +385,10 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     /* Re-measure using the final card width; otherwise the drawn text can wrap
        to more lines than the height calculation reserved for it. */
     meaningLines = cn_tooltip_wrapped_metrics(entry->meaning, contentWidth,
-                                               meaningAdvance, meaningSpace, &meaningWidth);
+                                               meaningGlyphSize, meaningSpace, &meaningWidth);
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 8 + 3 + (meaningLines * 11) + 5;
+    panelHeight = 4 + 12 + 2 + 9 + 3 + (meaningLines * 12) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Center the card on the hovered word, then keep it inside the 320x240 UI. */
@@ -408,11 +443,11 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     }
 
     cn_draw_tooltip_latin(gfxP, entry->pinyin, left + padding + 1,
-                          top + 19, 8, pinyinAdvance, pinyinSpace, pinyinColor);
+                          top + 19, pinyinGlyphSize, pinyinSpace, pinyinColor);
 
     cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
-                            top + 32, contentWidth, meaningAdvance, meaningSpace,
-                            11, 8, meaningColor);
+                            top + 33, contentWidth, meaningSpace,
+                            12, meaningGlyphSize, meaningColor);
 }
 
 '''
@@ -432,8 +467,10 @@ def main() -> None:
         return
 
     source = replace_once(source, '#include <string.h>\n',
-                          '#include <string.h>\n#include "recompui.h"\n',
-                          "include RecompUI API")
+                          '#include <string.h>\n#include "recompui.h"\n'
+                          'RECOMP_IMPORT(".", u32 mmcht_get_client_width(void));\n'
+                          'RECOMP_IMPORT(".", u32 mmcht_get_client_height(void));\n',
+                          "include RecompUI and client size APIs")
     source = replace_once(
         source,
         '#include "generated/pinyin_data.inc"\n',
