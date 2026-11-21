@@ -37,6 +37,12 @@ static u16 sWordHoverTextId = 0xFFFF;
 static s16 sWordHoverPage = -1;
 static bool sWordHoverUiInitialized;
 static bool sWordHoverUiShown;
+static float sWordViewportLeft;
+static float sWordViewportTop;
+static float sWordViewportWidth = 320.0f;
+static float sWordViewportHeight = 240.0f;
+static float sWordScreenWidth = 320.0f;
+static float sWordScreenHeight = 240.0f;
 
 static const CnWordEntry* cn_find_word(const u16* text, u16 remaining, u8* matchedLength) {
     s32 low = 0;
@@ -102,13 +108,13 @@ static void mmcht_setup_word_hover_ui(void) {
     if (sWordHoverContext == RECOMPUI_NULL_CONTEXT) return;
     recompui_open_context(sWordHoverContext);
     sWordHoverRoot = recompui_context_root(sWordHoverContext);
-    recompui_set_position(sWordHoverRoot, POSITION_ABSOLUTE);
+    /* The root must be the full RecompUI canvas so percentage hitboxes resolve
+       against the same window dimensions as the mouse input. */
+    recompui_set_position(sWordHoverRoot, POSITION_RELATIVE);
     recompui_set_left(sWordHoverRoot, 0.0f, UNIT_DP);
     recompui_set_top(sWordHoverRoot, 0.0f, UNIT_DP);
-    recompui_set_right(sWordHoverRoot, 0.0f, UNIT_DP);
-    recompui_set_bottom(sWordHoverRoot, 0.0f, UNIT_DP);
-    recompui_set_width_auto(sWordHoverRoot);
-    recompui_set_height_auto(sWordHoverRoot);
+    recompui_set_width(sWordHoverRoot, 100.0f, UNIT_PERCENT);
+    recompui_set_height(sWordHoverRoot, 100.0f, UNIT_PERCENT);
 
     for (i = 0; i < MMCHT_MAX_WORD_HITBOXES; i++) {
         RecompuiResource hitbox = recompui_create_button(
@@ -143,8 +149,21 @@ static void mmcht_hide_word_context(void) {
     sWordHitboxCount = 0;
 }
 
-static void mmcht_begin_word_frame(u16 textId, s16 pageIndex) {
+static void mmcht_begin_word_frame(PlayState* play, u16 textId, s16 pageIndex) {
     if (!cn_word_hover_enabled()) { mmcht_hide_word_context(); return; }
+
+    /* Text coordinates are emitted in the game's active logical viewport.
+       RecompUI percentages are relative to the whole client canvas. */
+    if (play != NULL) {
+        sWordViewportLeft = (float)play->view.viewport.leftX;
+        sWordViewportTop = (float)play->view.viewport.topY;
+        sWordViewportWidth = (float)(play->view.viewport.rightX - play->view.viewport.leftX);
+        sWordViewportHeight = (float)(play->view.viewport.bottomY - play->view.viewport.topY);
+        sWordScreenWidth = (gScreenWidth > 0) ? (float)gScreenWidth : 320.0f;
+        sWordScreenHeight = (gScreenHeight > 0) ? (float)gScreenHeight : 240.0f;
+        if (sWordViewportWidth <= 0.0f) sWordViewportWidth = sWordScreenWidth;
+        if (sWordViewportHeight <= 0.0f) sWordViewportHeight = sWordScreenHeight;
+    }
     if ((textId != sWordHoverTextId) || (pageIndex != sWordHoverPage)) {
         sHoveredWordSlot = -1;
         sWordHoverTextId = textId;
@@ -176,10 +195,16 @@ static void mmcht_finish_word_frame(void) {
         RecompuiResource hitbox = sWordHoverButtons[i];
         if (i < sWordHitboxCount) {
             const CnWordHitbox* box = &sWordHitboxes[i];
-            float left = ((float)box->x * 100.0f) / CN_SCREEN_WIDTH;
-            float top = ((float)box->y * 100.0f) / 240.0f;
-            float width = ((float)box->width * 100.0f) / CN_SCREEN_WIDTH;
-            float height = ((float)box->height * 100.0f) / 240.0f;
+            float gameLeft = sWordViewportLeft +
+                             ((float)box->x * sWordViewportWidth / CN_SCREEN_WIDTH);
+            float gameTop = sWordViewportTop +
+                            ((float)box->y * sWordViewportHeight / 240.0f);
+            float gameWidth = (float)box->width * sWordViewportWidth / CN_SCREEN_WIDTH;
+            float gameHeight = (float)box->height * sWordViewportHeight / 240.0f;
+            float left = (gameLeft * 100.0f) / sWordScreenWidth;
+            float top = (gameTop * 100.0f) / sWordScreenHeight;
+            float width = (gameWidth * 100.0f) / sWordScreenWidth;
+            float height = (gameHeight * 100.0f) / sWordScreenHeight;
             recompui_set_left(hitbox, left, UNIT_PERCENT);
             recompui_set_top(hitbox, top, UNIT_PERCENT);
             recompui_set_width(hitbox, width, UNIT_PERCENT);
@@ -295,10 +320,10 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const CnWordEntry* entry;
     const s16 padding = 7;
     const s16 maxContentWidth = 132;
-    const s16 meaningAdvance = 4;
-    const s16 meaningSpace = 3;
-    const s16 pinyinAdvance = 5;
-    const s16 pinyinSpace = 3;
+    const s16 meaningAdvance = 7;
+    const s16 meaningSpace = 4;
+    const s16 pinyinAdvance = 7;
+    const s16 pinyinSpace = 4;
     s16 hanziWidth, pinyinWidth, meaningWidth, meaningLines;
     s16 contentWidth, panelWidth, panelHeight;
     s16 left, top, x, y;
@@ -323,7 +348,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     if (contentWidth < 62) contentWidth = 62;
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 6 + 2 + (meaningLines * 6) + 5;
+    panelHeight = 4 + 12 + 2 + 8 + 3 + (meaningLines * 10) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Center the card on the hovered word, then keep it inside the 320x240 UI. */
@@ -378,11 +403,11 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     }
 
     cn_draw_tooltip_latin(gfxP, entry->pinyin, left + padding + 1,
-                          top + 18, 6, pinyinAdvance, pinyinSpace, pinyinColor);
+                          top + 19, 8, pinyinAdvance, pinyinSpace, pinyinColor);
 
     cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
-                            top + 28, contentWidth, meaningAdvance, meaningSpace,
-                            6, 5, meaningColor);
+                            top + 32, contentWidth, meaningAdvance, meaningSpace,
+                            10, 8, meaningColor);
 }
 
 '''
@@ -430,7 +455,7 @@ def main() -> None:
     chunk = replace_once(
         chunk,
         "    y = cn_page_y(msgCtx, page);\n",
-        "    y = cn_page_y(msgCtx, page);\n    mmcht_begin_word_frame(msgCtx->currentTextId, pageIndex);\n",
+        "    y = cn_page_y(msgCtx, page);\n    mmcht_begin_word_frame(play, msgCtx->currentTextId, pageIndex);\n",
         "begin hover frame",
     )
     chunk = replace_once(
