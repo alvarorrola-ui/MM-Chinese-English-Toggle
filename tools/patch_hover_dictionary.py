@@ -37,10 +37,6 @@ static u16 sWordHoverTextId = 0xFFFF;
 static s16 sWordHoverPage = -1;
 static bool sWordHoverUiInitialized;
 static bool sWordHoverUiShown;
-static float sWordViewportLeft;
-static float sWordViewportTop;
-static float sWordViewportWidth = 320.0f;
-static float sWordViewportHeight = 240.0f;
 static float sWordScreenWidth = 320.0f;
 static float sWordScreenHeight = 240.0f;
 static float sWordClientWidth = 320.0f;
@@ -154,23 +150,16 @@ static void mmcht_hide_word_context(void) {
 static void mmcht_begin_word_frame(PlayState* play, u16 textId, s16 pageIndex) {
     if (!cn_word_hover_enabled()) { mmcht_hide_word_context(); return; }
 
-    /* RecompUI spans the full client window. The game picture can be a centered
-       letterboxed rectangle, so query the real window size and fit the game's
-       render surface into that client area before creating percentage hitboxes. */
-    if (play != NULL) {
-        sWordViewportLeft = (float)play->view.viewport.leftX;
-        sWordViewportTop = (float)play->view.viewport.topY;
-        sWordViewportWidth = (float)(play->view.viewport.rightX - play->view.viewport.leftX);
-        sWordViewportHeight = (float)(play->view.viewport.bottomY - play->view.viewport.topY);
-        sWordScreenWidth = (gScreenWidth > 0) ? (float)gScreenWidth : 320.0f;
-        sWordScreenHeight = (gScreenHeight > 0) ? (float)gScreenHeight : 240.0f;
-        sWordClientWidth = (float)mmcht_get_client_width();
-        sWordClientHeight = (float)mmcht_get_client_height();
-        if (sWordClientWidth < 1.0f) sWordClientWidth = sWordScreenWidth;
-        if (sWordClientHeight < 1.0f) sWordClientHeight = sWordScreenHeight;
-        if (sWordViewportWidth <= 0.0f) sWordViewportWidth = sWordScreenWidth;
-        if (sWordViewportHeight <= 0.0f) sWordViewportHeight = sWordScreenHeight;
-    }
+    /* Dialogue text is drawn in the game's 2D screen coordinate space, not the
+       3D camera viewport. Map that logical screen into RecompUI's full client
+       canvas using the same centered, aspect-preserving scale as the game image. */
+    (void)play;
+    sWordScreenWidth = (gScreenWidth > 0) ? (float)gScreenWidth : 320.0f;
+    sWordScreenHeight = (gScreenHeight > 0) ? (float)gScreenHeight : 240.0f;
+    sWordClientWidth = (float)mmcht_get_client_width();
+    sWordClientHeight = (float)mmcht_get_client_height();
+    if (sWordClientWidth < 1.0f) sWordClientWidth = sWordScreenWidth;
+    if (sWordClientHeight < 1.0f) sWordClientHeight = sWordScreenHeight;
     if ((textId != sWordHoverTextId) || (pageIndex != sWordHoverPage)) {
         sHoveredWordSlot = -1;
         sWordHoverTextId = textId;
@@ -202,12 +191,12 @@ static void mmcht_finish_word_frame(void) {
         RecompuiResource hitbox = sWordHoverButtons[i];
         if (i < sWordHitboxCount) {
             const CnWordHitbox* box = &sWordHitboxes[i];
-            float gameLeft = sWordViewportLeft +
-                             ((float)box->x * sWordViewportWidth / CN_SCREEN_WIDTH);
-            float gameTop = sWordViewportTop +
-                            ((float)box->y * sWordViewportHeight / 240.0f);
-            float gameWidth = (float)box->width * sWordViewportWidth / CN_SCREEN_WIDTH;
-            float gameHeight = (float)box->height * sWordViewportHeight / 240.0f;
+            /* box coordinates already belong to the 2D dialogue renderer. Do
+               not add the 3D camera viewport origin or scale by its dimensions. */
+            float gameLeft = (float)box->x;
+            float gameTop = (float)box->y;
+            float gameWidth = (float)box->width;
+            float gameHeight = (float)box->height;
             float scaleX = sWordClientWidth / sWordScreenWidth;
             float scaleY = sWordClientHeight / sWordScreenHeight;
             float scale = (scaleX < scaleY) ? scaleX : scaleY;
