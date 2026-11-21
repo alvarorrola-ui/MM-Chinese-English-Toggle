@@ -347,6 +347,11 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     if (contentWidth > maxContentWidth) contentWidth = maxContentWidth;
     if (contentWidth < 62) contentWidth = 62;
 
+    /* Re-measure using the final card width; otherwise the drawn text can wrap
+       to more lines than the height calculation reserved for it. */
+    meaningLines = cn_tooltip_wrapped_metrics(entry->meaning, contentWidth,
+                                               meaningAdvance, meaningSpace, &meaningWidth);
+
     panelWidth = contentWidth + padding * 2;
     panelHeight = 4 + 12 + 2 + 8 + 3 + (meaningLines * 11) + 5;
     if (panelWidth > 150) panelWidth = 150;
