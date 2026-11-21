@@ -229,14 +229,14 @@ static void mmcht_finish_word_frame(void) {
     }
 }
 
+/*
+ * Every pinyin glyph is rasterized into a full square texture tile and centered
+ * horizontally inside it. Therefore the pen must advance by the full tile size;
+ * using the glyph's natural font width while drawing a full-size tile makes
+ * neighboring glyph quads overlap and produces visibly uneven spacing.
+ */
 static s16 cn_pinyin_glyph_advance(char character, s16 glyphSize) {
-    u32 i;
-    for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
-        if (gCnPinyinGlyphCharacters[i] == character) {
-            s16 glyphAdvance = (s16)((gCnPinyinGlyphWidthPercent[i] * glyphSize + 99) / 100);
-            return (glyphAdvance < 2) ? 2 : (glyphAdvance + 1);
-        }
-    }
+    (void)character;
     return glyphSize;
 }
 
