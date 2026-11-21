@@ -319,7 +319,7 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const CnWordHitbox* box;
     const CnWordEntry* entry;
     const s16 padding = 7;
-    const s16 maxContentWidth = 132;
+    const s16 maxContentWidth = 120;
     const s16 meaningAdvance = 7;
     const s16 meaningSpace = 4;
     const s16 pinyinAdvance = 7;
