@@ -72,23 +72,19 @@ def encode_pinyin(pinyin: str) -> str:
     return "".join(encoded).rstrip()
 
 
-def clean_gloss(raw: str, limit: int = 68) -> str:
-    # The dialogue atlas only guarantees a-z; keep the tooltip fully renderable.
-    senses = raw.split("/")
-    cleaned: list[str] = []
-    for sense in senses:
+def clean_gloss(raw: str, limit: int = 48) -> str:
+    # Keep the primary dictionary sense only; a longer multi-sense string made
+    # the in-game card too wide and harder to read during dialogue.
+    for sense in raw.split("/"):
         sense = re.sub(r"\[[^\]]*\]", " ", sense)
         sense = re.sub(r"\([^)]*\)", " ", sense)
         sense = re.sub(r"[^A-Za-z ]", " ", sense).lower()
         sense = " ".join(sense.split())
-        if sense and sense not in cleaned:
-            cleaned.append(sense)
-        if len(cleaned) == 2:
-            break
-    result = " or ".join(cleaned) or "meaning unavailable"
-    if len(result) > limit:
-        result = result[:limit].rsplit(" ", 1)[0]
-    return result
+        if sense:
+            if len(sense) > limit:
+                sense = sense[:limit].rsplit(" ", 1)[0]
+            return sense
+    return "meaning unavailable"
 
 
 def read_cedict(path: Path) -> dict[str, tuple[str, str]]:
