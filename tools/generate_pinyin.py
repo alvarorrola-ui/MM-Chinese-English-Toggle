@@ -89,12 +89,17 @@ def glyph_width_percent(character: str, font: ImageFont.FreeTypeFont) -> int:
 def pack_i4(character: str, font: ImageFont.FreeTypeFont) -> bytes:
     image = Image.new("L", (GLYPH_SIZE, GLYPH_SIZE), 0)
     draw = ImageDraw.Draw(image)
-    bbox = draw.textbbox((0, 0), character, font=font)
+
+    # All Latin glyphs must share a typographic baseline. Centering each glyph
+    # independently (the old behavior) made x/y and accented vowels float at
+    # different heights in the in-game pinyin line. Use Pillow's baseline
+    # anchor and center only horizontally; reserve enough headroom for tone
+    # marks and enough space below for descenders such as y and g.
+    bbox = draw.textbbox((0, 0), character, font=font, anchor="ls")
     width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
     x = (GLYPH_SIZE - width) // 2 - bbox[0]
-    y = (GLYPH_SIZE - height) // 2 - bbox[1]
-    draw.text((x, y), character, fill=255, font=font)
+    baseline = 96
+    draw.text((x, baseline), character, fill=255, font=font, anchor="ls")
     pixels = list(image.getdata())
     output = bytearray(GLYPH_BYTES)
     for index in range(0, len(pixels), 2):
