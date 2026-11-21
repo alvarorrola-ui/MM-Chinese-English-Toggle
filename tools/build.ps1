@@ -27,6 +27,20 @@ Write-Host "Generating tone-marked pinyin lookup..."
 python (Join-Path $PSScriptRoot "generate_pinyin.py") --cnmod-root $CnmodRoot --output (Join-Path $ModDir "src\generated\pinyin_data.inc")
 if ($LASTEXITCODE -ne 0) { throw "Pinyin generation failed." }
 
+Write-Host "Downloading CC-CEDICT word dictionary..."
+$Cedict = Join-Path $env:RUNNER_TEMP "cedict_1_0_ts_utf-8_mdbg.txt.gz"
+Invoke-WebRequest -Uri "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz" -OutFile $Cedict
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $Cedict)) { throw "CC-CEDICT download failed." }
+
+Write-Host "Generating contextual word-level pinyin and meanings..."
+$VocabularyOutput = Join-Path $ModDir "src\generated\vocabulary_data.inc"
+python (Join-Path $PSScriptRoot "generate_vocabulary.py") --cnmod-root $CnmodRoot --cedict $Cedict --output $VocabularyOutput
+if ($LASTEXITCODE -ne 0) { throw "Contextual vocabulary generation failed." }
+
+Write-Host "Patching hover dictionary into the Chinese renderer..."
+python (Join-Path $PSScriptRoot "patch_hover_dictionary.py") --mod-dir $ModDir
+if ($LASTEXITCODE -ne 0) { throw "Hover dictionary patch step failed." }
+
 Write-Host "Building MIPS mod and NRM..."
 $UpstreamBuild = Join-Path $ModDir "build.ps1"
 & $UpstreamBuild -DecompRoot $DecompRoot -Clang $Clang -Ld $Ld -RecompModTool $RecompModTool
