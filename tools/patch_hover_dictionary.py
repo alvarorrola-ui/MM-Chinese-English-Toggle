@@ -22,7 +22,6 @@ typedef struct {
 } CnWordHitbox;
 
 #define MMCHT_MAX_WORD_HITBOXES 64
-#define MMCHT_TOOLTIP_MAX_WIDTH 150
 
 static bool cn_word_hover_enabled(void) {
     return recomp_get_config_u32("word_dictionary") == 1;
@@ -339,7 +338,14 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
 
     {
         Gfx* gfx = *gfxP;
+        /* A restrained underline makes the actual hit target visible. */
         gDPPipeSync(gfx++);
+        gDPSetCycleType(gfx++, G_CYC_1CYCLE);
+        gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
+        gDPSetCombineMode(gfx++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
+        gDPSetPrimColor(gfx++, 0, 0, 91, 151, 164, 175);
+        gDPFillRectangle(gfx++, box->x, box->y + box->height + 1,
+                         box->x + box->width, box->y + box->height + 2);
         gDPSetCycleType(gfx++, G_CYC_1CYCLE);
         gDPSetRenderMode(gfx++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
         gDPSetCombineMode(gfx++, G_CC_PRIMITIVE, G_CC_PRIMITIVE);
