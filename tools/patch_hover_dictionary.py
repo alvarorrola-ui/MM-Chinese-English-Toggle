@@ -353,6 +353,8 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     const CnWordHitbox* box;
     const CnWordEntry* entry;
     const s16 padding = 7;
+    const s16 screenWidth = (gScreenWidth > 0) ? (s16)gScreenWidth : CN_SCREEN_WIDTH;
+    const s16 screenHeight = (gScreenHeight > 0) ? (s16)gScreenHeight : 240;
     const s16 maxContentWidth = 120;
     const s16 meaningGlyphSize = 10;
     const s16 meaningSpace = 4;
@@ -391,14 +393,15 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     panelHeight = 4 + 12 + 2 + 9 + 3 + (meaningLines * 12) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
-    /* Center the card on the hovered word, then keep it inside the 320x240 UI. */
+    /* Anchor to the hovered word and clamp to the actual logical render size.
+       Widescreen/expanded HUD modes can be wider than the original 320-pixel UI. */
     left = box->x + (box->width / 2) - (panelWidth / 2);
     if (left < 3) left = 3;
-    if (left + panelWidth > 317) left = 317 - panelWidth;
+    if (left + panelWidth > screenWidth - 3) left = screenWidth - panelWidth - 3;
 
     top = box->y - panelHeight - 7;
     if (top < 4) top = box->y + box->height + 5;
-    if (top + panelHeight > 236) top = 236 - panelHeight;
+    if (top + panelHeight > screenHeight - 4) top = screenHeight - panelHeight - 4;
     if (top < 3) top = 3;
 
     {
