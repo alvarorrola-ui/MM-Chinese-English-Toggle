@@ -438,7 +438,7 @@ def main() -> None:
 [[manifest.config_options]]
 id = "word_dictionary"
 name = "Word Dictionary"
-description = "Show a word meaning when hovering Chinese dialogue. Off by default if you prefer an uncluttered screen."
+description = "Show Hanzi, contextual pinyin and an English gloss when hovering Chinese dialogue. Enabled by default."
 type = "Enum"
 options = [ "Off", "On" ]
 default = "On"
