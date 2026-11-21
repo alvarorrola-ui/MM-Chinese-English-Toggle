@@ -239,10 +239,11 @@ static s16 cn_pinyin_glyph_advance(char character, s16 glyphSize) {
     u32 i;
     for (i = 0; i < sizeof(gCnPinyinGlyphCharacters) - 1; i++) {
         if (gCnPinyinGlyphCharacters[i] == character) {
-            s16 naturalAdvance =
+            s16 advance =
                 (s16)((gCnPinyinGlyphWidthPercent[i] * glyphSize + 99) / 100);
-            s16 advance = naturalAdvance + 1;
-            if (advance < 5) advance = 5;
+            /* Font advance already includes the glyph's natural side bearing.
+               Do not add artificial per-letter tracking here. */
+            if (advance < 3) advance = 3;
             if (advance > glyphSize) advance = glyphSize;
             return advance;
         }
