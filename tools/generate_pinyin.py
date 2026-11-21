@@ -153,23 +153,23 @@ def main() -> None:
             output.write(f'    {{ 0x{codepoint:04X}, "{syllable}" }},\n')
         output.write("};\n\n")
 
-        output.write(f'static const char gCnPinyinGlyphCharacters[] = "{TOKEN_CHARS}";\\n')
+        output.write(f'static const char gCnPinyinGlyphCharacters[] = "{TOKEN_CHARS}";\n')
         glyphs_by_token = {**{char: char for char in "abcdefghijklmnopqrstuvwxyz"}, **TOKEN_TO_GLYPH}
         glyph_widths = [glyph_width_percent(glyphs_by_token[token], font) for token in TOKEN_CHARS]
-        output.write(f"static const u8 gCnPinyinGlyphWidthPercent[{len(TOKEN_CHARS)}] = {{\\n")
+        output.write(f"static const u8 gCnPinyinGlyphWidthPercent[{len(TOKEN_CHARS)}] = {{\n")
         for offset in range(0, len(glyph_widths), 13):
-            output.write("    " + ", ".join(str(value) for value in glyph_widths[offset:offset + 13]) + ",\\n")
-        output.write("};\\n")
-        output.write(f"static const u8 gCnPinyinGlyphBitmaps[{len(TOKEN_CHARS)}][{GLYPH_BYTES}] = {{\\n")
+            output.write("    " + ", ".join(str(value) for value in glyph_widths[offset:offset + 13]) + ",\n")
+        output.write("};\n")
+        output.write(f"static const u8 gCnPinyinGlyphBitmaps[{len(TOKEN_CHARS)}][{GLYPH_BYTES}] = {{\n")
         for token in TOKEN_CHARS:
             visible_glyph = glyphs_by_token[token]
             bitmap = pack_i4(visible_glyph, font)
-            output.write("    {\\n")
+            output.write("    {\n")
             for offset in range(0, len(bitmap), 16):
                 row = bitmap[offset:offset + 16]
-                output.write("        " + ", ".join(f"0x{value:02X}" for value in row) + ",\\n")
-            output.write("    },\\n")
-        output.write("};\\n")
+                output.write("        " + ", ".join(f"0x{value:02X}" for value in row) + ",\n")
+            output.write("    },\n")
+        output.write("};\n")
 
     # Assert orthographic placement for common cases before packaging.
     examples = {
