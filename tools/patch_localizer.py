@@ -95,7 +95,7 @@ static const u8* cn_find_pinyin_glyph(char character) {
 /* Render pinyin in a separate, high-contrast panel above the dialogue. */
 static void cn_draw_pinyin_panel(Gfx** gfxP, MessageContext* msgCtx, const char* text) {
     const s16 panelLeft = 8, panelRight = 312, contentLeft = 16, contentRight = 304;
-    const s16 glyphSize = 10, advance = 10, rowHeight = 14, wordGap = 5;
+    const s16 glyphSize = 12, advance = 12, rowHeight = 16, wordGap = 5;
     const Color_RGB8 pinyinColor = { 255, 244, 205 };
     const char* word;
     s16 rows = 1, measureX = contentLeft, panelHeight, panelTop;
