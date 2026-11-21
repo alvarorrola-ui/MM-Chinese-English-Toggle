@@ -77,8 +77,8 @@ def clean_gloss(raw: str, limit: int = 68) -> str:
     senses = raw.split("/")
     cleaned: list[str] = []
     for sense in senses:
-        sense = re.sub(r"\\[[^\\]]*\\]", " ", sense)
-        sense = re.sub(r"\\([^)]*\\)", " ", sense)
+        sense = re.sub(r"\[[^\]]*\]", " ", sense)
+        sense = re.sub(r"\([^)]*\)", " ", sense)
         sense = re.sub(r"[^A-Za-z ]", " ", sense).lower()
         sense = " ".join(sense.split())
         if sense and sense not in cleaned:
