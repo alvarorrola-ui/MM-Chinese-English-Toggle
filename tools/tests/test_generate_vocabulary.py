@@ -31,9 +31,9 @@ class VocabularyGeneratorTests(unittest.TestCase):
 
     def test_cc_cedict_parser_and_simplified_form(self) -> None:
         sample = (
-            "# test dictionary\\n"
-            "銀行 银行 [yin2 hang2] /bank/\\n"
-            "音樂 音乐 [yin1 yue4] /music/\\n"
+            "# test dictionary\n"
+            "銀行 银行 [yin2 hang2] /bank/\n"
+            "音樂 音乐 [yin1 yue4] /music/\n"
         )
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "cedict.txt"
