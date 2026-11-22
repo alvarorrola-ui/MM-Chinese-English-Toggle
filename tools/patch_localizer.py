@@ -334,7 +334,8 @@ void mmcht_initialize_language(void) {
 RECOMP_CALLBACK("*", recomp_on_play_main)
 void mmcht_poll_ntilde(PlayState* play) {
     bool ntildeDown = (mmcht_ntilde_down() != 0);
-    if (ntildeDown && !sNtildeWasDown) {
+    bool toggleEnabled = (recomp_get_config_u32("language_toggle") == 1);
+    if (toggleEnabled && ntildeDown && !sNtildeWasDown) {
         mmcht_set_language(play, !sChineseEnabled);
         mmcht_save_language(sChineseEnabled ? 1 : 0);
     }
@@ -369,6 +370,14 @@ void mmcht_poll_ntilde(PlayState* play) {
 id = "pinyin"
 name = "Pinyin"
 description = "Show tone-marked pinyin (ā á ǎ à) in a separate readable panel. Off by default."
+type = "Enum"
+options = [ "Off", "On" ]
+default = "Off"
+
+[[manifest.config_options]]
+id = "language_toggle"
+name = "Allow Ñ language toggle"
+description = "When enabled, pressing Ñ switches between Simplified Chinese and English. Off by default."
 type = "Enum"
 options = [ "Off", "On" ]
 default = "Off"
