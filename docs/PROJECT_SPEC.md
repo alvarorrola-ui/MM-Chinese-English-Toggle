@@ -4,8 +4,8 @@
 
 | Item | Requirement |
 |---|---|
-| Startup language | English |
-| Hotkey | Ñ (current Windows build; see README) |
+| Startup language | Simplified Chinese |
+| Hotkey | Ñ, optional and disabled by default in mod configuration |
 | Alternate language | Simplified Chinese |
 | Switch while dialogue is open | Immediate; preserve message position/progress |
 | Pinyin | Optional second line; tone marks; OFF by default; word-level readings when dictionary match exists |
@@ -26,12 +26,13 @@
 ## Acceptance tests
 
 - [ ] Mod loads on Recompiled 1.2.2.
-- [ ] Game starts in English.
-- [ ] F5 switches English to Simplified Chinese.
-- [ ] F5 switches Simplified Chinese to English.
-- [ ] F5 works while a dialogue is open.
+- [ ] New installations start in Simplified Chinese.
+- [ ] The Ñ language-toggle option is Off by default.
+- [ ] With the option Off, Ñ does not change the language.
+- [ ] With the option On, Ñ switches between Chinese and English.
+- [ ] Ñ works while a dialogue is open when the option is enabled.
 - [ ] Switching does not close the dialogue or reset its character/page position.
-- [ ] F5 does not require a menu or restart.
+- [ ] Switching does not require a restart.
 - [ ] Pinyin is hidden by default.\n- [ ] Hovering a recognized Chinese word shows Hanzi, contextual pinyin and an English gloss.\n- [ ] The tooltip does not obstruct dialogue progression or controller input.\n- [ ] The hover dictionary can be disabled independently in mod configuration.\n- [ ] Hover hitboxes remain aligned at supported window sizes and aspect ratios.
 - [ ] Enabling pinyin shows correctly toned pinyin below Chinese text.
 - [ ] Language and pinyin settings persist across game restarts.
