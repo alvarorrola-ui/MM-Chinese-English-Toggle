@@ -32,9 +32,11 @@ $Cedict = Join-Path $env:RUNNER_TEMP "cedict_1_0_ts_utf-8_mdbg.txt.gz"
 Invoke-WebRequest -Uri "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz" -OutFile $Cedict
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $Cedict)) { throw "CC-CEDICT download failed." }
 
-Write-Host "Generating contextual word-level pinyin and meanings..."
+Write-Host "Generating contextual word-level pinyin, English meanings, and HSK levels..."
 $VocabularyOutput = Join-Path $ModDir "src\generated\vocabulary_data.inc"
-python (Join-Path $PSScriptRoot "generate_vocabulary.py") --cnmod-root $CnmodRoot --cedict $Cedict --output $VocabularyOutput
+$HskCsv = Join-Path $PSScriptRoot "data\majora_mask_vocabulario_HSK1-4.csv.gz.b64"
+if (-not (Test-Path $HskCsv)) { throw "Authoritative HSK CSV is missing: $HskCsv" }
+python (Join-Path $PSScriptRoot "generate_vocabulary.py") --cnmod-root $CnmodRoot --cedict $Cedict --output $VocabularyOutput --hsk-csv $HskCsv
 if ($LASTEXITCODE -ne 0) { throw "Contextual vocabulary generation failed." }
 
 Write-Host "Patching hover dictionary into the Chinese renderer..."
