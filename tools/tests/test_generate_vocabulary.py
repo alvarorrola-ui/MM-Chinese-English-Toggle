@@ -68,6 +68,13 @@ class VocabularyGeneratorTests(unittest.TestCase):
         self.assertRegex(content, r"0x4F60.*?, 1 \},")
         self.assertRegex(content, r"0x4E16.*?, 0 \},")
 
+    def test_repository_hsk_vocabulary_has_expected_level_counts(self) -> None:
+        source = Path(__file__).resolve().parents[1] / "data" / "majora_mask_vocabulario_HSK1-4.csv.gz.b64"
+        levels = vocabulary.read_hsk_csv(source)
+        self.assertEqual(len(levels), 1064)
+        counts = {level: list(levels.values()).count(level) for level in range(1, 5)}
+        self.assertEqual(counts, {1: 209, 2: 134, 3: 290, 4: 431})
+
     def test_gloss_uses_only_renderable_ascii_letters(self) -> None:
         gloss = vocabulary.clean_gloss("/to test (something)/experiment; trial/")
         self.assertEqual(gloss, "to test")
