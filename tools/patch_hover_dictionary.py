@@ -536,6 +536,7 @@ def main() -> None:
         "        u16 command = gCnCommands[page->commandOffset + i];\n"
         "        const CnWordEntry* matchedWord = NULL;\n"
         "        u8 matchedWordLength = 0;\n"
+        "        if (i >= wordSkipUntil) currentHskWord = NULL;\n"
         "        if ((i >= wordSkipUntil) && (command >= 0x3400) && (command <= 0x9FFF)) {\n"
         "            matchedWord = cn_find_word(&gCnCommands[page->commandOffset + i],\n"
         "                                       page->commandCount - i, &matchedWordLength);\n"
