@@ -70,9 +70,11 @@ MM Chinese-English Toggle — installation
    - mm_chinese_english_toggle.nrm
    - mm_cht_input.dll
 3. Enable "MM Chinese-English Toggle" in the in-game mod manager.
-4. Start in English. Press Ñ to switch between English and Simplified Chinese.
-5. Optional: set Pinyin to On in this mod's configuration. It is Off by default.
-6. The Word Dictionary option is On by default. With Chinese active, hover over a
+4. The game starts in Simplified Chinese by default.
+5. Optional: enable "Allow Ñ language toggle" in this mod's configuration.
+   It is Off by default. When enabled, Ñ switches between Chinese and English.
+6. Optional: set Pinyin to On in this mod's configuration. It is Off by default.
+7. The Word Dictionary option is On by default. With Chinese active, hover over a
    recognized word in a dialogue to see Hanzi, contextual tone-marked pinyin, and
    a short English meaning. Set Word Dictionary to Off to disable the hover hints.
 
