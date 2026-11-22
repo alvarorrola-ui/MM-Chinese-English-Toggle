@@ -74,8 +74,8 @@ static int get_state_path(wchar_t* path, DWORD path_count) {
     slash = wcsrchr(path, L'\\');
     if (slash == NULL) slash = wcsrchr(path, L'/');
     if (slash == NULL) return 0;
-    if ((DWORD)(slash - path + 1) + 24 >= path_count) return 0;
-    wcscpy_s(slash + 1, path_count - (DWORD)(slash + 1 - path), L"mm_cht_language.state");
+    if ((DWORD)(slash - path + 1) + 32 >= path_count) return 0;
+    wcscpy_s(slash + 1, path_count - (DWORD)(slash + 1 - path), L"mm_cht_language_v2.state");
     return 1;
 }
 
