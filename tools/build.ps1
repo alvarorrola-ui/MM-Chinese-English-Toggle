@@ -32,9 +32,11 @@ $Cedict = Join-Path $env:RUNNER_TEMP "cedict_1_0_ts_utf-8_mdbg.txt.gz"
 Invoke-WebRequest -Uri "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz" -OutFile $Cedict
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $Cedict)) { throw "CC-CEDICT download failed." }
 
-Write-Host "Generating contextual word-level pinyin and meanings..."
+Write-Host "Generating contextual word-level pinyin, English meanings, and HSK levels..."
 $VocabularyOutput = Join-Path $ModDir "src\generated\vocabulary_data.inc"
-python (Join-Path $PSScriptRoot "generate_vocabulary.py") --cnmod-root $CnmodRoot --cedict $Cedict --output $VocabularyOutput
+$HskCsv = Join-Path $PSScriptRoot "data\majora_mask_vocabulario_HSK1-4.csv.gz.b64"
+if (-not (Test-Path $HskCsv)) { throw "Authoritative HSK CSV is missing: $HskCsv" }
+python (Join-Path $PSScriptRoot "generate_vocabulary.py") --cnmod-root $CnmodRoot --cedict $Cedict --output $VocabularyOutput --hsk-csv $HskCsv
 if ($LASTEXITCODE -ne 0) { throw "Contextual vocabulary generation failed." }
 
 Write-Host "Patching hover dictionary into the Chinese renderer..."
@@ -68,13 +70,15 @@ MM Chinese-English Toggle — installation
    - mm_chinese_english_toggle.nrm
    - mm_cht_input.dll
 3. Enable "MM Chinese-English Toggle" in the in-game mod manager.
-4. Start in English. Press Ñ to switch between English and Simplified Chinese.
-5. Optional: set Pinyin to On in this mod's configuration. It is Off by default.
-6. The Word Dictionary option is On by default. With Chinese active, hover over a
+4. The game starts in Simplified Chinese by default.
+5. Optional: enable "Allow Ñ language toggle" in this mod's configuration.
+   It is Off by default. When enabled, Ñ switches between Chinese and English.
+6. Optional: set Pinyin to On in this mod's configuration. It is Off by default.
+7. The Word Dictionary option is On by default. With Chinese active, hover over a
    recognized word in a dialogue to see Hanzi, contextual tone-marked pinyin, and
    a short English meaning. Set Word Dictionary to Off to disable the hover hints.
 
-The chosen language is stored in mm_cht_language.state beside the DLL. This separate
+The chosen language is stored in mm_cht_language_v2.state beside the DLL. This versioned preference file ensures the Chinese-first default also applies when upgrading from older builds. This separate
 preference file does not modify the ROM or any game save file.
 
 Windows build only. Target: Majora's Mask: Recompiled 1.2.2.

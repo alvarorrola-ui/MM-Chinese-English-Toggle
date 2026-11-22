@@ -4,11 +4,9 @@ A Majora's Mask: Recompiled mod project targeting **version 1.2.2**.
 
 ## Goal
 
-Switch the in-game text language between:
-- **English** (default)
-- **Simplified Chinese** (based on the community Chinese localization)
-
-The intended hotkey is **Ñ**. The language must change immediately, including while a message is open, without closing the dialogue, restarting the game, resetting progress, editing the ROM, or modifying save files.
+The game starts in **Simplified Chinese** by default. An optional mod setting,
+**Allow Ñ language toggle**, is **OFF by default**. When enabled, Ñ switches
+between Simplified Chinese and English. The language must change immediately, including while a message is open, without closing the dialogue, restarting the game, resetting progress, editing the ROM, or modifying save files.
 
 Optional pinyin is intended to appear on a second line below Chinese characters. It is **OFF by default**. User preferences must persist.
 
@@ -44,8 +42,8 @@ The hover UI uses Recompiled's mouse-hover event API. Compilation alone does not
 - Game: Majora's Mask: Recompiled
 - Minimum version: `1.2.2`
 - Mod display name: `MM Chinese-English Toggle`
-- Initial language: English
-- Toggle: Ñ (required)
+- Initial language: Simplified Chinese
+- Toggle: Ñ (optional; disabled by default in mod configuration)
 - Pinyin: optional, tone diacritics (ā á ǎ à), default OFF
 - Persistence: language and pinyin preferences
 - Save/ROM safety: no save-file or ROM modifications

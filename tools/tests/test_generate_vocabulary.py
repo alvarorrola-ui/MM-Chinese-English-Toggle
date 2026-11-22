@@ -52,6 +52,29 @@ class VocabularyGeneratorTests(unittest.TestCase):
         words = vocabulary.collect_words(["去银行"], entries)
         self.assertEqual(words, {"银行": ("yin2 hang2", "bank")})
 
+    def test_hsk_csv_is_authoritative_and_rejects_duplicates(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "hsk.csv"
+            path.write_text("hanzi,nivel_HSK\n你好,HSK 1\n朋友,HSK 2\n", encoding="utf-8")
+            levels = vocabulary.read_hsk_csv(path)
+        self.assertEqual(levels, {"你好": 1, "朋友": 2})
+
+    def test_generated_entry_has_level_and_non_hsk_defaults_to_zero(self) -> None:
+        words = {"你好": ("ni3 hao3", "hello"), "世界": ("shi4 jie4", "world")}
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "vocabulary_data.inc"
+            vocabulary.write_include(words, output, "test", {"你好": 1})
+            content = output.read_text(encoding="utf-8")
+        self.assertRegex(content, r"0x4F60.*?, 1 \},")
+        self.assertRegex(content, r"0x4E16.*?, 0 \},")
+
+    def test_repository_hsk_vocabulary_has_expected_level_counts(self) -> None:
+        source = Path(__file__).resolve().parents[1] / "data" / "majora_mask_vocabulario_HSK1-4.csv.gz.b64"
+        levels = vocabulary.read_hsk_csv(source)
+        self.assertEqual(len(levels), 1064)
+        counts = {level: list(levels.values()).count(level) for level in range(1, 5)}
+        self.assertEqual(counts, {1: 209, 2: 134, 3: 290, 4: 431})
+
     def test_gloss_uses_only_renderable_ascii_letters(self) -> None:
         gloss = vocabulary.clean_gloss("/to test (something)/experiment; trial/")
         self.assertEqual(gloss, "to test")

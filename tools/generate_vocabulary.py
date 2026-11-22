@@ -8,7 +8,10 @@ word-level pronunciation (including polyphones) and English glosses.
 from __future__ import annotations
 
 import argparse
+import base64
+import csv
 import gzip
+import io
 import re
 from pathlib import Path
 from typing import Iterable
@@ -149,15 +152,40 @@ def collect_words(runs: Iterable[str], entries: dict[str, tuple[str, str]]) -> d
     return words
 
 
+def read_hsk_csv(path: Path) -> dict[str, int]:
+    """Read explicit HSK 1-4 levels; Hanzi absent from the CSV stay at level 0."""
+    raw = path.read_bytes()
+    if path.name.endswith(".csv.gz.b64"):
+        raw = gzip.decompress(base64.b64decode(raw))
+    reader = csv.DictReader(io.StringIO(raw.decode("utf-8-sig")))
+    required = {"hanzi", "nivel_HSK"}
+    if not required.issubset(reader.fieldnames or []):
+        raise ValueError(f"HSK CSV must contain columns: {', '.join(sorted(required))}")
+    valid = {"HSK 1": 1, "HSK 2": 2, "HSK 3": 3, "HSK 4": 4}
+    levels: dict[str, int] = {}
+    for line_number, row in enumerate(reader, start=2):
+        hanzi = (row.get("hanzi") or "").strip()
+        label = (row.get("nivel_HSK") or "").strip()
+        if not hanzi:
+            raise ValueError(f"Empty hanzi at CSV line {line_number}")
+        if label not in valid:
+            raise ValueError(f"Unknown HSK level {label!r} at CSV line {line_number}")
+        if hanzi in levels:
+            raise ValueError(f"Duplicate hanzi {hanzi!r} at CSV line {line_number}")
+        levels[hanzi] = valid[label]
+    return levels
+
+
 def c_string(value: str) -> str:
     # Pinyin/meaning are sanitized to safe single-byte ASCII tokens above.
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def write_include(words: dict[str, tuple[str, str]], output: Path, source_label: str) -> None:
+def write_include(words: dict[str, tuple[str, str]], output: Path, source_label: str, hsk_levels: dict[str, int] | None = None) -> None:
     if not words:
         raise RuntimeError("No in-game words matched CC-CEDICT; refusing to produce an empty glossary.")
     rows = []
+    hsk_levels = hsk_levels or {}
     for hanzi, (raw_pinyin, meaning) in words.items():
         try:
             pinyin = encode_pinyin(raw_pinyin)
@@ -166,7 +194,7 @@ def write_include(words: dict[str, tuple[str, str]], output: Path, source_label:
         if not pinyin:
             continue
         codepoints = ", ".join(f"0x{ord(char):04X}" for char in hanzi)
-        rows.append((hanzi, len(hanzi), codepoints, pinyin, meaning))
+        rows.append((hanzi, len(hanzi), codepoints, pinyin, meaning, hsk_levels.get(hanzi, 0)))
     rows.sort(key=lambda row: (ord(row[0][0]), -row[1], row[0]))
     if not rows:
         raise RuntimeError("No CC-CEDICT entries had pinyin that the renderer can display.")
@@ -175,8 +203,8 @@ def write_include(words: dict[str, tuple[str, str]], output: Path, source_label:
         target.write("/* Generated subset of CC-CEDICT. Source: MDBG; CC BY-SA 4.0. */\n")
         target.write(f"/* Words present in the pinned MM Chinese translation corpus; source label: {source_label}. */\n")
         target.write("static const CnWordEntry gCnWordEntries[] = {\n")
-        for _hanzi, length, codepoints, pinyin, meaning in rows:
-            target.write(f"    {{ {{ {codepoints} }}, {length}, {c_string(pinyin)}, {c_string(meaning)} }},\n")
+        for _hanzi, length, codepoints, pinyin, meaning, hsk_level in rows:
+            target.write(f"    {{ {{ {codepoints} }}, {length}, {c_string(pinyin)}, {c_string(meaning)}, {hsk_level} }},\n")
         target.write("};\n")
     print(f"Generated {len(rows)} in-game glossary entries from CC-CEDICT.")
 
@@ -186,12 +214,14 @@ def main() -> None:
     parser.add_argument("--cnmod-root", required=True, type=Path)
     parser.add_argument("--cedict", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--hsk-csv", required=True, type=Path, help="Authoritative HSK 1-4 CSV")
     args = parser.parse_args()
 
     entries = read_cedict(args.cedict.resolve())
     runs = list(read_game_runs(args.cnmod_root.resolve()))
     words = collect_words(runs, entries)
-    write_include(words, args.output.resolve(), args.cedict.name)
+    hsk_levels = read_hsk_csv(args.hsk_csv.resolve())
+    write_include(words, args.output.resolve(), args.cedict.name, hsk_levels)
 
     # Guard the most common polyphone examples; these are word entries, not
     # isolated-character guesses.
