@@ -354,7 +354,7 @@ void mmcht_poll_ntilde(PlayState* play) {
     manifest = replace_once(manifest, 'version = "1.0.0"',
                             'version = "0.1.0"', "manifest version")
     manifest = replace_once(manifest, 'short_description = "《魔吉拉的面具》高清中文语言包(文本)"',
-                            'short_description = "Switch English and Simplified Chinese with Ñ."',
+                            'short_description = "Simplified Chinese by default; optional English toggle with Ñ."',
                             "short description")
     manifest = replace_once(manifest, 'authors = [ "SilntRavn" ]',
                             'authors = [ "alvarorrola-ui", "SilntRavn (Chinese localization)" ]',
