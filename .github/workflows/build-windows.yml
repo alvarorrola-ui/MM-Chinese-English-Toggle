@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mmcht-windows-build-${{ github.ref }}
+  group: mmcht-windows-build-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
