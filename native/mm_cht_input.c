@@ -97,7 +97,7 @@ __declspec(dllexport) void mmcht_ntilde_down(uint8_t* rdram, recomp_context_pref
 __declspec(dllexport) void mmcht_load_language(uint8_t* rdram, recomp_context_prefix* ctx) {
     wchar_t path[MAX_PATH];
     FILE* file;
-    int value = 0;
+    int value = 1; /* New installs start in Simplified Chinese. */
     (void)rdram;
     if (get_state_path(path, MAX_PATH)) {
         file = _wfopen(path, L"rb");
