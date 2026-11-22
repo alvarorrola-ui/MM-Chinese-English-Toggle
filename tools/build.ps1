@@ -78,7 +78,7 @@ MM Chinese-English Toggle — installation
    recognized word in a dialogue to see Hanzi, contextual tone-marked pinyin, and
    a short English meaning. Set Word Dictionary to Off to disable the hover hints.
 
-The chosen language is stored in mm_cht_language.state beside the DLL. This separate
+The chosen language is stored in mm_cht_language_v2.state beside the DLL. This versioned preference file ensures the Chinese-first default also applies when upgrading from older builds. This separate
 preference file does not modify the ROM or any game save file.
 
 Windows build only. Target: Majora's Mask: Recompiled 1.2.2.
