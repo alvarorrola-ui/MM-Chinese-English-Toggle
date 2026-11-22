@@ -21,6 +21,19 @@ typedef struct {
     s16 height;
 } CnWordHitbox;
 
+/* Four restrained HSK colors; level zero deliberately preserves vanilla text color. */
+static Color_RGB8 cn_hsk_color(u8 level) {
+    static const Color_RGB8 colors[5] = {
+        { 0, 0, 0 },
+        { 244, 220, 132 },
+        { 112, 204, 190 },
+        { 242, 169, 112 },
+        { 183, 159, 220 },
+    };
+    if ((level < 1) || (level > 4)) return colors[0];
+    return colors[level];
+}
+
 #define MMCHT_MAX_WORD_HITBOXES 64
 
 static bool cn_word_hover_enabled(void) {
@@ -390,7 +403,8 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
                                                meaningGlyphSize, meaningSpace, &meaningWidth);
 
     panelWidth = contentWidth + padding * 2;
-    panelHeight = 4 + 12 + 2 + 12 + 3 + (meaningLines * 12) + 5;
+    panelHeight = 4 + 12 + 2 + 12 + 3 + (meaningLines * 12) +
+                  ((entry->hsk_level > 0) ? 12 : 0) + 5;
     if (panelWidth > 150) panelWidth = 150;
 
     /* Anchor to the hovered word and clamp to the actual logical render size.
@@ -451,6 +465,19 @@ static void cn_draw_word_tooltip(Gfx** gfxP) {
     cn_draw_tooltip_wrapped(gfxP, entry->meaning, left + padding + 1,
                             top + 33, contentWidth, meaningSpace,
                             12, meaningGlyphSize, meaningColor);
+
+    if ((entry->hsk_level >= 1) && (entry->hsk_level <= 4)) {
+        Color_RGB8 levelColor = cn_hsk_color(entry->hsk_level);
+        s16 labelX = cn_draw_tooltip_latin(gfxP, "hsk", left + padding + 1,
+                                           top + 33 + (meaningLines * 12),
+                                           pinyinGlyphSize, pinyinSpace, levelColor);
+        const u8* levelGlyph = cn_find_glyph((u16)('0' + entry->hsk_level));
+        if (levelGlyph != NULL) {
+            cn_draw_glyph(gfxP, levelGlyph, labelX + 3,
+                          top + 33 + (meaningLines * 12),
+                          10, levelColor, 255, false);
+        }
+    }
 }
 
 '''
@@ -478,7 +505,7 @@ def main() -> None:
         source,
         '#include "generated/pinyin_data.inc"\n',
         '#include "generated/pinyin_data.inc"\n'
-        'typedef struct { u16 hanzi[8]; u8 length; const char* pinyin; const char* meaning; } CnWordEntry;\n'
+        'typedef struct { u16 hanzi[8]; u8 length; const char* pinyin; const char* meaning; u8 hsk_level; } CnWordEntry;\n'
         '#include "generated/vocabulary_data.inc"\n',
         "include generated contextual vocabulary",
     )
@@ -494,7 +521,7 @@ def main() -> None:
     chunk = replace_once(
         chunk,
         "    s32 pinyinLength = 0;\n",
-        "    s32 pinyinLength = 0;\n    u16 wordSkipUntil = 0;\n",
+        "    s32 pinyinLength = 0;\n    u16 wordSkipUntil = 0;\n    const CnWordEntry* currentHskWord = NULL;\n",
         "declare word segmentation state",
     )
     chunk = replace_once(
@@ -520,6 +547,7 @@ def main() -> None:
         "                matchedWordLength = 1;\n"
         "                wordSkipUntil = i + 1;\n"
         "            }\n"
+        "            currentHskWord = matchedWord;\n"
         "        }\n",
         "match contextual word and register hover target",
     )
@@ -562,6 +590,17 @@ def main() -> None:
         "    if (pinyinLength > 0) cn_draw_pinyin_panel(gfxP, msgCtx, pinyinText);\n"
         "    cn_draw_word_tooltip(gfxP);\n",
         "finish hover boxes and render word tooltip",
+    )
+    chunk = replace_once(
+        chunk,
+        "            cn_draw_glyph(gfxP, glyph, x, y, glyphSize, color, commandAlpha, shadow);",
+        "            Color_RGB8 drawColor = color;\n"
+        "            if ((currentHskWord != NULL) &&\n"
+        "                (currentHskWord->hsk_level >= 1) && (currentHskWord->hsk_level <= 4)) {\n"
+        "                drawColor = cn_hsk_color(currentHskWord->hsk_level);\n"
+        "            }\n"
+        "            cn_draw_glyph(gfxP, glyph, x, y, glyphSize, drawColor, commandAlpha, shadow);",
+        "tint HSK word glyphs",
     )
     source = source[:start] + chunk + source[end:]
 
